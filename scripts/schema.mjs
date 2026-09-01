@@ -56,11 +56,27 @@ export const SCHEMA = [
     horizon     TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
+  `CREATE TABLE IF NOT EXISTS hints (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug            TEXT UNIQUE NOT NULL,
+    title           TEXT NOT NULL,
+    dek             TEXT,
+    severity        TEXT,
+    discovered_from TEXT,
+    run_date        TEXT NOT NULL,
+    stats_json      TEXT,
+    content_md      TEXT NOT NULL,
+    opinion_md      TEXT,
+    sources_json    TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+
   `CREATE INDEX IF NOT EXISTS idx_runs_ticker ON research_runs(ticker, run_date)`,
 
   `CREATE INDEX IF NOT EXISTS idx_items_run ON research_items(run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_analyses_run ON analyses(run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_theories_run ON theories(run_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_hints_run_date ON hints(run_date)`,
 ];
 
 // ALTER สำหรับ DB เก่าที่สร้างก่อน column ใหม่ — รันด้วย try/catch (ซ้ำ = ข้าม)

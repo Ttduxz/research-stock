@@ -1,6 +1,12 @@
 import Link from "next/link";
-import { listStocksWithLatest } from "@/lib/db";
+import { listStocksWithLatest, listHints } from "@/lib/db";
 import VerdictBadge from "@/components/VerdictBadge";
+
+const SEVERITY_LABEL: Record<string, string> = {
+  "risk-high": "เสี่ยงสูง",
+  "risk-mid": "เสี่ยงปานกลาง",
+  "risk-low": "ควรรู้ไว้",
+};
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +35,8 @@ function broadSector(sector: string | null): string {
 }
 
 export default async function HomePage() {
-  const stocks = await listStocksWithLatest();
+  const [stocks, hints] = await Promise.all([listStocksWithLatest(), listHints()]);
+  const latestHints = hints.slice(0, 3);
 
   const sectors = new Map<string, typeof stocks>();
   for (const s of stocks) {
@@ -46,16 +53,37 @@ export default async function HomePage() {
 
   return (
     <>
-      <Link href="/research/ai-financing-web" className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", marginBottom: 28 }}>
-        <div className="card-title-row">
-          <h3>🕸️ งานวิจัยพิเศษ: โครงข่ายการเงิน AI — Nvidia × Blackstone</h3>
-          <span className="badge risk-high">ความเสี่ยงฟองสบู่</span>
+      <section style={{ marginBottom: 32 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          <h2 className="sector-heading" style={{ marginTop: 0 }}>งานวิจัยพิเศษ / Insights</h2>
+          {hints.length > 0 && <Link href="/insights" style={{ fontSize: 13 }}>ดูทั้งหมด ({hints.length}) →</Link>}
         </div>
-        <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>
-          วิเคราะห์เชิงลึกดีล SPV มูลค่า $500,000 ล้าน ของ Nvidia กับ Blackstone และสถาบันการเงินอื่น
-          พร้อมประเมินความเสี่ยงเชิงระบบหากกลายเป็นฟองสบู่ — อ่านรายงานฉบับเต็ม →
-        </p>
-      </Link>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <Link href="/research/ai-financing-web" className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", margin: 0 }}>
+            <div className="card-title-row">
+              <h3>🕸️ โครงข่ายการเงิน AI — Nvidia × Blackstone</h3>
+              <span className="badge risk-high">ความเสี่ยงฟองสบู่</span>
+            </div>
+            <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>
+              วิเคราะห์เชิงลึกดีล SPV มูลค่า $500,000 ล้าน ของ Nvidia กับ Blackstone และสถาบันการเงินอื่น
+              พร้อมประเมินความเสี่ยงเชิงระบบหากกลายเป็นฟองสบู่ — อ่านรายงานฉบับเต็ม →
+            </p>
+          </Link>
+          {latestHints.map((h) => (
+            <Link key={h.slug} href={`/insights/${h.slug}`} className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", margin: 0 }}>
+              <div className="card-title-row">
+                <h3>{h.title}</h3>
+                {h.severity && (
+                  <span className={`badge ${h.severity}`}>{SEVERITY_LABEL[h.severity] ?? h.severity}</span>
+                )}
+              </div>
+              {h.dek && (
+                <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>{h.dek}</p>
+              )}
+            </Link>
+          ))}
+        </div>
+      </section>
 
       <h1>หุ้นที่ติดตาม</h1>
       <p className="subtitle">

@@ -20,6 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="site-header">
           <Link href="/" className="logo">📈 Tee Stock Research</Link>
           <span className="tagline">research → analyze → theorize</span>
+          <nav style={{ marginLeft: "auto" }}>
+            <Link href="/insights" style={{ fontSize: 13, color: "var(--text-dim)" }}>Insights</Link>
+          </nav>
         </header>
         <main className="container">{children}</main>
         <footer className="container disclaimer">

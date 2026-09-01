@@ -127,6 +127,37 @@ export interface Theory {
   created_at: string;
 }
 
+/**
+ * hint = ข่าว/ประเด็นที่กระทบกว้างกว่าตัวหุ้นที่ user สั่ง research (เชิงระบบ/อุตสาหกรรม/มหภาค)
+ * ที่ research team บังเอิญเจอระหว่างค้นแล้วเห็นว่าสำคัญพอจะแยกเป็นรายงานของตัวเอง
+ */
+export interface Hint {
+  id: number;
+  slug: string;
+  title: string;
+  dek: string | null;
+  severity: string | null; // "risk-high" | "risk-mid" | "risk-low"
+  discovered_from: string | null; // ticker ที่เจอระหว่าง research คั่นด้วย comma เช่น "NVDA,MSFT"
+  run_date: string;
+  stats_json: string | null; // { label, value, note? }[]
+  content_md: string;
+  opinion_md: string | null; // ความเห็นส่วนตัวปิดท้าย (ถ้ามี)
+  sources_json: string | null; // { group, title, url }[]
+  created_at: string;
+}
+
+export interface HintStat {
+  label: string;
+  value: string;
+  note?: string;
+}
+
+export interface HintSource {
+  group: string;
+  title: string;
+  url: string;
+}
+
 export interface StockOverview extends Stock {
   latest_run_id: number | null;
   latest_run_date: string | null;
@@ -148,6 +179,7 @@ interface Snapshot {
   research_items: ResearchItem[];
   analyses: Analysis[];
   theories: Theory[];
+  hints?: Hint[];
 }
 
 // ---------- Mode selection ----------
@@ -284,4 +316,30 @@ export async function getRunBundle(runId: number): Promise<RunBundle> {
     analysis: (analysis.rows[0] as unknown as Analysis) ?? null,
     theories: theories.rows as unknown as Theory[],
   };
+}
+
+export async function listHints(): Promise<Hint[]> {
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s?.hints) return [];
+    return [...s.hints].sort(
+      (a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id
+    );
+  }
+  const rs = await getDb().execute(
+    "SELECT * FROM hints ORDER BY run_date DESC, id DESC"
+  );
+  return rs.rows as unknown as Hint[];
+}
+
+export async function getHint(slug: string): Promise<Hint | null> {
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    return s?.hints?.find((h) => h.slug === slug) ?? null;
+  }
+  const rs = await getDb().execute({
+    sql: "SELECT * FROM hints WHERE slug = ?",
+    args: [slug],
+  });
+  return (rs.rows[0] as unknown as Hint) ?? null;
 }

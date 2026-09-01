@@ -7,9 +7,17 @@ argument-hint: <TICKER> [ชื่อบริษัท/ตลาด ถ้า t
 
 คุณคือ orchestrator ของระบบ Tee Stock Research ทำตามขั้นตอนนี้ตามลำดับ (ขั้น 2-4 ต้องรอผลขั้นก่อนหน้า):
 
+**กติกาประหยัด token (สำคัญ):** ทีม agent ถูกกำหนด `model: sonnet` ไว้ในไฟล์ spec แล้ว ห้าม override เป็นโมเดลแพงกว่า (ยกเว้น `hint-analyst` ที่ตั้งเป็น `model: fable` ไว้ตั้งใจ — รันเฉพาะตอนมี hint ที่ผ่านเกณฑ์จริง ไม่ใช่ทุก ticker); ระหว่างรอ agent อย่าโพสต์ข้อความสถานะยาว — โพสต์เฉพาะตอนมี action จริง; ถ้ารันหลาย ticker ควรเริ่มใน session ใหม่ที่ context ยังเล็ก และตรวจไฟล์ด้วยสคริปต์ validate ครั้งเดียวต่อไฟล์พอ
+
 1. **เตรียม workspace**: กำหนด `DIR = pipeline/output/<TICKER>-<YYYY-MM-DD>` (วันที่วันนี้) สร้าง directory ถ้ายังไม่มี ถ้า ticker กำกวม (มีหลายตลาด) ให้ระบุตลาดตามที่ user บอก หรือเลือกตลาดหลักของหุ้นนั้น
 
 2. **Research team**: spawn agent `stock-researcher` ด้วย prompt ที่ระบุ ticker, ชื่อบริษัทเท่าที่รู้, และสั่งให้เขียนผลลง `<DIR>/research.json` — รอจนเสร็จ แล้วอ่านไฟล์ตรวจว่า JSON ถูกต้องและมี research_items
+
+2.5. **เช็ค hint** (ประเด็นที่กระทบกว้างกว่าหุ้นตัวนี้): ถ้า `research.json` มี `hints` ไม่ว่างเปล่า ให้ทำต่อไปนี้ต่อ hint แต่ละอัน **ก่อน** ไปขั้น 3:
+   - รัน `node scripts/list-hints.mjs` เช็คว่ามีรายงาน hint เรื่องเดียวกัน/คล้ายกันถูกทำไปแล้วในช่วง 30 วันที่ผ่านมาหรือไม่ (ใช้วิจารณญาณเทียบหัวข้อ/`dek` ไม่ต้องตรงคำเป๊ะ) — ถ้าซ้ำ ข้าม ไม่ต้องทำซ้ำ
+   - ถ้าไม่ซ้ำและยังมั่นใจว่าสำคัญพอ (ดูเกณฑ์ใน spec ของ `stock-researcher`): spawn agent `hint-analyst` ด้วย prompt ที่ส่ง title, why_it_matters, evidence จาก hint นั้น + ticker ที่เจอ (`discovered_from`) + วันที่วันนี้ (`run_date`) สั่งเขียนผลลง `<DIR>/hints/<slug>.json`
+   - ตรวจไฟล์ผลลัพธ์ว่ามี `slug`, `title`, `content_md` แล้วรัน `node scripts/ingest-hint.mjs <DIR>/hints/<slug>.json` ตรวจว่าขึ้น `✔ ingested hint`
+   - เก็บรายชื่อ hint ที่ทำสำเร็จไว้สรุปในขั้น 7
 
 3. **Analyze team**: spawn agent `stock-analyst` ด้วย prompt ที่บอก path ของ `<DIR>/research.json` และสั่งเขียนผลลง `<DIR>/analysis.json` — รอจนเสร็จ ตรวจไฟล์
 
@@ -23,4 +31,6 @@ argument-hint: <TICKER> [ชื่อบริษัท/ตลาด ถ้า t
 
    **6.5 อัปเดตเว็บ production (โหมดไม่มี Turso)**: รัน `npm run deploy` (export snapshot + deploy ขึ้น Vercel) ตรวจว่าจบด้วย URL production
 
-7. **สรุปให้ user**: verdict, คะแนน, ทฤษฎีหลักพร้อม scenario, และบอกว่าดูผลเต็มได้ที่หน้าเว็บ `/stock/<TICKER>` — ปิดท้ายเตือนว่าไม่ใช่คำแนะนำการลงทุน
+7. **สรุปให้ user**: verdict, คะแนน, ทฤษฎีหลักพร้อม scenario, และบอกว่าดูผลเต็มได้ที่หน้าเว็บ `/stock/<TICKER>` — ถ้าขั้น 2.5 มี hint ที่ทำสำเร็จ ให้บอกแยกต่างหากชัดเจนว่าเจอ hint อะไรบ้างและดูได้ที่ `/insights/<slug>` — ปิดท้ายเตือนว่าไม่ใช่คำแนะนำการลงทุน
+
+**เมื่อสั่งวิเคราะห์หลาย ticker พร้อมกัน**: ทำครบทุกขั้น (รวมขั้น 2.5) ต่อ ticker ก่อนไป ticker ถัดไป แล้วสรุปรวมท้ายสุดเป็น "N รายงานหุ้น + X hint" (X นับเฉพาะ hint ที่ไม่ซ้ำกับที่มีอยู่แล้ว) ไม่ต้องรอให้ทำครบทุก ticker ก่อนค่อยเช็ค hint
