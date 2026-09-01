@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+data/*.db
+data/*.db-journal
+pipeline/output/
+*.tsbuildinfo
+next-env.d.ts
+
+.vercel
+.env*

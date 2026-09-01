@@ -1,0 +1,28 @@
+{
+  "name": "tee-stock-research",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:init": "node scripts/init-db.mjs",
+    "db:seed": "node scripts/seed-demo.mjs",
+    "ingest": "node scripts/ingest.mjs",
+    "db:export": "node scripts/export-db.mjs",
+    "deploy": "node scripts/export-db.mjs && npx vercel deploy --prod --yes"
+  },
+  "dependencies": {
+    "@libsql/client": "^0.14.0",
+    "marked": "^14.1.2",
+    "next": "^15.4.5",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.7.0"
+  }
+}
