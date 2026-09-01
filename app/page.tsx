@@ -10,10 +10,13 @@ const UNKNOWN_SECTOR = "ไม่ระบุกลุ่มอุตสาห�
 // หน้าแรกจับกลุ่มกว้างๆ จาก keyword แทน ส่วนหน้ารายละเอียดหุ้นยังโชว์ข้อความเต็ม
 const BROAD_SECTORS: [string, RegExp][] = [
   ["ยา / สุขภาพ (Healthcare)", /health|biopharma|pharma/i],
-  ["วัสดุ / ชิ้นส่วนอุตสาหกรรม (Materials & Components)", /component|forged|fastener|materials/i],
+  ["การเงิน / เครือข่ายชำระเงิน (Payments & Financials)", /payment|financial/i],
+  ["สื่อ / บันเทิง (Media & Entertainment)", /media|entertainment|streaming/i],
+  ["ค้าปลีก / สินค้าจำเป็น (Retail & Staples)", /retail|consumer staples|grocery/i],
+  ["วัสดุ / ชิ้นส่วนอุตสาหกรรม (Materials & Components)", /component|forged|fastener|materials|specialty metal/i],
   ["การบินและอวกาศ (Aerospace & Space)", /aerospace|defense|satellite|space/i],
   ["ยานยนต์ / สินค้าผู้บริโภค (Automotive & Consumer)", /automob|automotive|consumer discretionary/i],
-  ["เทคโนโลยี (Technology)", /tech|semiconductor|software|communication services/i],
+  ["เทคโนโลยี (Technology)", /tech|semiconductor|software|communication services|internet/i],
 ];
 
 function broadSector(sector: string | null): string {
@@ -43,6 +46,17 @@ export default async function HomePage() {
 
   return (
     <>
+      <Link href="/research/ai-financing-web" className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", marginBottom: 28 }}>
+        <div className="card-title-row">
+          <h3>🕸️ งานวิจัยพิเศษ: โครงข่ายการเงิน AI — Nvidia × Blackstone</h3>
+          <span className="badge risk-high">ความเสี่ยงฟองสบู่</span>
+        </div>
+        <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>
+          วิเคราะห์เชิงลึกดีล SPV มูลค่า $500,000 ล้าน ของ Nvidia กับ Blackstone และสถาบันการเงินอื่น
+          พร้อมประเมินความเสี่ยงเชิงระบบหากกลายเป็นฟองสบู่ — อ่านรายงานฉบับเต็ม →
+        </p>
+      </Link>
+
       <h1>หุ้นที่ติดตาม</h1>
       <p className="subtitle">
         ผลจาก pipeline: research team → analyze team → theorie team
