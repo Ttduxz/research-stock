@@ -6,7 +6,7 @@
 
 - `app/` — Next.js (App Router) หน้าเว็บอ่านอย่างเดียว: `/` รายชื่อหุ้น, `/stock/[ticker]` รายละเอียด, `/insights` + `/insights/[slug]` รายงาน hint
 - `lib/db.ts` — client + query ทั้งหมด (Turso ผ่าน env, fallback ไฟล์ `data/stock.db`)
-- `scripts/` — `init-db.mjs` (สร้าง schema), `ingest.mjs` (นำ bundle.json ลง DB), `ingest-hint.mjs` (นำ hint.json ลง DB), `list-hints.mjs` (เช็ค hint ล่าสุดกัน dedup), `seed-demo.mjs`, `schema.mjs` (นิยาม schema — แก้ที่นี่ที่เดียว)
+- `scripts/` — `init-db.mjs` (สร้าง schema), `ingest.mjs` (นำ bundle.json ลง DB), `ingest-hint.mjs` (นำ hint.json ลง DB), `list-hints.mjs` (list hint — กัน dedup ตอนหาต้นทาง 30 วัน / หา exposure ตอนดูย้อนหลังยาว), `get-hint.mjs <slug>` (ดึง hint เดียวแบบเต็ม), `seed-demo.mjs`, `schema.mjs` (นิยาม schema — แก้ที่นี่ที่เดียว)
 - `.claude/agents/` — ทีม: `stock-researcher` (research), `stock-analyst` (analyze), `stock-theorist` (theorie), `hint-analyst` (วิเคราะห์ hint แยก — ดูหัวข้อ "Hint" ด้านล่าง)
 - `.claude/commands/research-stock.md` — `/research-stock <TICKER>` รัน pipeline เต็ม (รวมขั้นเช็ค hint)
 - `pipeline/output/` — ไฟล์กลางของแต่ละ run (gitignored), `pipeline/examples/demo-bundle.json` — ตัวอย่างรูปแบบ bundle
@@ -16,6 +16,8 @@
 ระหว่าง research หุ้นตัวหนึ่ง ถ้าทีม research เจอประเด็นที่ **กระทบกว้างกว่าหุ้นตัวนั้น** (เชิงระบบการเงิน/อุตสาหกรรมทั้งเซกเตอร์/มหภาค/กฎระเบียบ) และมั่นใจสูงว่าสำคัญพอ — `stock-researcher` จะ flag ไว้ใน field `hints` ของ `research.json` (เกณฑ์และ schema ดู spec ของ agent) จากนั้น `/research-stock` จะเช็ค dedup กับ `hints` ในสัปดาห์ที่ผ่านมา แล้วถ้าไม่ซ้ำจะสั่ง agent `hint-analyst` (model: **fable**) ค้นเพิ่ม+วิเคราะห์ลึกแยกเป็นรายงานของตัวเอง บันทึกลงตาราง `hints` แสดงที่ `/insights/<slug>`
 
 ผลคือถ้าสั่งวิเคราะห์ N ticker จะได้ N รายงานหุ้นปกติ **บวก** X รายงาน hint (X มักเป็น 0 — ตั้งเกณฑ์ไว้สูงตั้งใจ ไม่ใช่ flag ทุกข่าวที่เจอ)
+
+นอกจากสร้าง hint ใหม่ `/research-stock` ยังเช็คย้อนกลับด้วยว่าหุ้นที่กำลัง research ตัวนี้**เกี่ยวข้อง/อาจได้รับผลกระทบ**จาก hint ที่มีอยู่แล้วหรือไม่ (ขั้น 2.6 — ไม่ว่า hint นั้นจะเจอวันนี้หรือก่อนหน้า) ถ้าใช่ analyst/theorist จะใส่มุมมองความเสี่ยงเชิงระบบ/การบริหารความเสี่ยงที่เชื่อมโยงไปยัง `/insights/<slug>` ไว้ในรายงานหุ้นตัวนั้นด้วย
 
 ## กติกาสำคัญ
 

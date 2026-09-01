@@ -11,6 +11,7 @@
     "ingest": "node scripts/ingest.mjs",
     "ingest-hint": "node scripts/ingest-hint.mjs",
     "list-hints": "node scripts/list-hints.mjs",
+    "get-hint": "node scripts/get-hint.mjs",
     "db:export": "node scripts/export-db.mjs",
     "deploy": "node scripts/export-db.mjs && npx vercel deploy --prod --yes"
   },
