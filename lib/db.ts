@@ -136,7 +136,8 @@ export interface Hint {
   slug: string;
   title: string;
   dek: string | null;
-  severity: string | null; // "risk-high" | "risk-mid" | "risk-low"
+  direction: string | null; // "positive" | "negative" | "mixed" — hint ไม่ได้แปลว่าความเสี่ยงเสมอไป อาจเป็นโอกาสก็ได้
+  magnitude: string | null; // "high" | "mid" | "low" — ขนาดผลกระทบ ไม่ว่าจะบวกหรือลบ
   discovered_from: string | null; // ticker ที่เจอระหว่าง research คั่นด้วย comma เช่น "NVDA,MSFT"
   run_date: string;
   stats_json: string | null; // { label, value, note? }[]

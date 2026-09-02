@@ -61,7 +61,8 @@ export const SCHEMA = [
     slug            TEXT UNIQUE NOT NULL,
     title           TEXT NOT NULL,
     dek             TEXT,
-    severity        TEXT,
+    direction       TEXT,
+    magnitude       TEXT,
     discovered_from TEXT,
     run_date        TEXT NOT NULL,
     stats_json      TEXT,
@@ -83,6 +84,21 @@ export const SCHEMA = [
 export const MIGRATIONS = [
   `ALTER TABLE research_runs ADD COLUMN details_json TEXT`,
   `ALTER TABLE research_runs ADD COLUMN entry_plan_json TEXT`,
+  // hints เคยมีแค่ severity (risk-high/mid/low) — เปลี่ยนเป็น direction+magnitude ให้จับเรื่องบวกได้ด้วย ไม่ใช่แค่ความเสี่ยง
+  `ALTER TABLE hints ADD COLUMN direction TEXT`,
+  `ALTER TABLE hints ADD COLUMN magnitude TEXT`,
+];
+
+// backfill ครั้งเดียว: แถวเก่าที่ยังมีแค่ severity (คอลัมน์เก่า ไม่ได้อยู่ใน SCHEMA แล้วแต่ยังอยู่ใน DB จริงถ้าเคยสร้างไว้)
+// ให้ direction/magnitude ที่ยังว่าง — ปลอดภัยรันซ้ำได้เพราะเช็ค WHERE direction IS NULL
+const BACKFILL = [
+  `UPDATE hints SET direction = 'negative',
+     magnitude = CASE severity
+       WHEN 'risk-high' THEN 'high'
+       WHEN 'risk-mid' THEN 'mid'
+       WHEN 'risk-low' THEN 'low'
+       ELSE NULL END
+   WHERE direction IS NULL AND severity IS NOT NULL`,
 ];
 
 export async function applySchema(db) {
@@ -92,6 +108,14 @@ export async function applySchema(db) {
       await db.execute(stmt);
     } catch (err) {
       if (!/duplicate column/i.test(String(err))) throw err;
+    }
+  }
+  for (const stmt of BACKFILL) {
+    try {
+      await db.execute(stmt);
+    } catch (err) {
+      // DB ใหม่ที่ไม่เคยมีคอลัมน์ severity เลย — ไม่มีอะไรต้อง backfill ข้ามได้
+      if (!/no such column/i.test(String(err))) throw err;
     }
   }
 }

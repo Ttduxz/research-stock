@@ -2,14 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getHint, type HintStat, type HintSource } from "@/lib/db";
 import Markdown from "@/components/Markdown";
+import HintBadge from "@/components/HintBadge";
 
 export const dynamic = "force-dynamic";
-
-const SEVERITY_LABEL: Record<string, string> = {
-  "risk-high": "เสี่ยงสูง",
-  "risk-mid": "เสี่ยงปานกลาง",
-  "risk-low": "ควรรู้ไว้",
-};
 
 function parseJson<T>(raw: string | null): T | null {
   if (!raw) return null;
@@ -49,11 +44,7 @@ export default async function InsightPage({
 
       <div className="stock-head">
         <h1>{hint.title}</h1>
-        {hint.severity && (
-          <span className={`badge ${hint.severity}`}>
-            {SEVERITY_LABEL[hint.severity] ?? hint.severity}
-          </span>
-        )}
+        <HintBadge direction={hint.direction} magnitude={hint.magnitude} />
       </div>
       <p className="subtitle">
         {hint.dek}

@@ -317,6 +317,11 @@ section:first-of-type > .sector-heading { margin-top: 8px; }
 .badge.risk-mid { background: rgba(210, 153, 34, 0.15); color: var(--yellow); }
 .badge.risk-low { background: rgba(63, 185, 80, 0.15); color: var(--green); }
 
+/* ---- hint badges: direction (hint = โอกาสหรือความเสี่ยงก็ได้ ไม่ใช่แค่ risk) ---- */
+.badge.dir-positive { background: rgba(63, 185, 80, 0.15); color: var(--green); }
+.badge.dir-negative { background: rgba(248, 81, 73, 0.15); color: var(--red); }
+.badge.dir-mixed { background: rgba(88, 166, 255, 0.15); color: var(--accent); }
+
 /* ---- special research: pull quote ---- */
 .quote {
   border-left: 3px solid var(--accent);

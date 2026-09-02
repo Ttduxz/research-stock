@@ -1,12 +1,7 @@
 import Link from "next/link";
 import { listStocksWithLatest, listHints } from "@/lib/db";
 import VerdictBadge from "@/components/VerdictBadge";
-
-const SEVERITY_LABEL: Record<string, string> = {
-  "risk-high": "เสี่ยงสูง",
-  "risk-mid": "เสี่ยงปานกลาง",
-  "risk-low": "ควรรู้ไว้",
-};
+import HintBadge from "@/components/HintBadge";
 
 export const dynamic = "force-dynamic";
 
@@ -64,9 +59,7 @@ export default async function HomePage() {
               <Link key={h.slug} href={`/insights/${h.slug}`} className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", margin: 0 }}>
                 <div className="card-title-row">
                   <h3>{h.title}</h3>
-                  {h.severity && (
-                    <span className={`badge ${h.severity}`}>{SEVERITY_LABEL[h.severity] ?? h.severity}</span>
-                  )}
+                  <HintBadge direction={h.direction} magnitude={h.magnitude} />
                 </div>
                 {h.dek && (
                   <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>{h.dek}</p>

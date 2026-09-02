@@ -8,7 +8,8 @@
  *   "slug": "kebab-case-unique",
  *   "title": "...",
  *   "dek": "หนึ่งบรรทัดอธิบายว่าเรื่องนี้คืออะไร",
- *   "severity": "risk-high|risk-mid|risk-low",
+ *   "direction": "positive|negative|mixed",
+ *   "magnitude": "high|mid|low",
  *   "discovered_from": "NVDA,MSFT",
  *   "run_date": "YYYY-MM-DD",
  *   "stats": [{ "label": "...", "value": "...", "note": "..." }],
@@ -16,6 +17,9 @@
  *   "opinion_md": "...ความเห็นส่วนตัวปิดท้าย (ถ้ามี)...",
  *   "sources": [{ "group": "...", "title": "...", "url": "..." }]
  * }
+ *
+ * hint ไม่ใช่แค่ความเสี่ยง — direction=positive คือโอกาส/catalyst เชิงบวกที่กระทบกว้าง
+ * เท่าๆ กับ direction=negative ที่เป็นความเสี่ยงเชิงระบบ
  *
  * slug ซ้ำ = update รายงานเดิม (กันกรณี hint เดียวกันถูกเจอซ้ำแล้วอยากอัปเดตข้อมูลใหม่)
  */
@@ -35,9 +39,14 @@ if (!hint.slug || !hint.title || !hint.content_md) {
   console.error("hint.json ต้องมี slug, title, content_md");
   process.exit(1);
 }
-const validSeverity = ["risk-high", "risk-mid", "risk-low"];
-if (hint.severity && !validSeverity.includes(hint.severity)) {
-  console.error(`severity ต้องเป็นหนึ่งใน: ${validSeverity.join(", ")}`);
+const validDirection = ["positive", "negative", "mixed"];
+if (hint.direction && !validDirection.includes(hint.direction)) {
+  console.error(`direction ต้องเป็นหนึ่งใน: ${validDirection.join(", ")}`);
+  process.exit(1);
+}
+const validMagnitude = ["high", "mid", "low"];
+if (hint.magnitude && !validMagnitude.includes(hint.magnitude)) {
+  console.error(`magnitude ต้องเป็นหนึ่งใน: ${validMagnitude.join(", ")}`);
   process.exit(1);
 }
 
@@ -48,12 +57,13 @@ const j = (v) => (v == null ? null : JSON.stringify(v));
 
 try {
   await db.execute({
-    sql: `INSERT INTO hints (slug, title, dek, severity, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO hints (slug, title, dek, direction, magnitude, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(slug) DO UPDATE SET
             title = excluded.title,
             dek = excluded.dek,
-            severity = excluded.severity,
+            direction = excluded.direction,
+            magnitude = excluded.magnitude,
             discovered_from = excluded.discovered_from,
             run_date = excluded.run_date,
             stats_json = excluded.stats_json,
@@ -64,7 +74,8 @@ try {
       hint.slug,
       hint.title,
       hint.dek ?? null,
-      hint.severity ?? null,
+      hint.direction ?? null,
+      hint.magnitude ?? null,
       hint.discovered_from ?? null,
       hint.run_date ?? new Date().toISOString().slice(0, 10),
       j(hint.stats),

@@ -1,18 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { listHints } from "@/lib/db";
+import HintBadge from "@/components/HintBadge";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Insights — ประเด็นเชิงระบบ | Tee Stock Research",
-  description: "ประเด็นที่ research team เจอระหว่างวิเคราะห์หุ้น แต่กระทบกว้างกว่าตัวหุ้นตัวเดียว",
-};
-
-const SEVERITY_LABEL: Record<string, string> = {
-  "risk-high": "เสี่ยงสูง",
-  "risk-mid": "เสี่ยงปานกลาง",
-  "risk-low": "ควรรู้ไว้",
+  description: "ประเด็นที่ research team เจอระหว่างวิเคราะห์หุ้น แต่กระทบกว้างกว่าตัวหุ้นตัวเดียว — ทั้งความเสี่ยงและโอกาส",
 };
 
 export default async function InsightsPage() {
@@ -23,6 +18,7 @@ export default async function InsightsPage() {
       <h1>Insights</h1>
       <p className="subtitle">
         ประเด็นที่ทีม research เจอระหว่างวิเคราะห์หุ้น แต่กระทบกว้างกว่าตัวหุ้นตัวเดียว — เชิงระบบ/อุตสาหกรรม/มหภาค
+        ทั้งด้านความเสี่ยงและด้านโอกาส
       </p>
 
       {hints.length === 0 ? (
@@ -37,11 +33,7 @@ export default async function InsightsPage() {
               <div className="ticker" style={{ fontSize: 16, lineHeight: 1.4 }}>{h.title}</div>
               {h.dek && <div className="name" style={{ whiteSpace: "normal" }}>{h.dek}</div>}
               <div className="meta">
-                {h.severity && (
-                  <span className={`badge ${h.severity}`}>
-                    {SEVERITY_LABEL[h.severity] ?? h.severity}
-                  </span>
-                )}
+                <HintBadge direction={h.direction} magnitude={h.magnitude} />
                 <span>
                   {h.discovered_from && <>เจอระหว่าง {h.discovered_from} · </>}
                   {h.run_date}
