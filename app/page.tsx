@@ -77,7 +77,12 @@ export default async function HomePage() {
         </section>
       )}
 
-      <h1>หุ้นที่ติดตาม</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+        <h1>หุ้นที่ติดตาม</h1>
+        {stocks.length > 0 && (
+          <Link href="/best-price" style={{ fontSize: 13 }}>🏆 5 หุ้นที่ราคาน่าสนใจที่สุดตอนนี้ →</Link>
+        )}
+      </div>
       <p className="subtitle">
         ผลจาก pipeline: research team → analyze team → theorie team
       </p>

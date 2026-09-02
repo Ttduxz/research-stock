@@ -29,8 +29,13 @@ export default function FinChart({
   const maxRev = Math.max(...revenue) * 1.15;
   const revY = (v: number) => bottom - (v / maxRev) * H;
 
-  const maxMargin = margin_pct?.length ? Math.max(40, Math.max(...margin_pct) * 1.6) : 0;
-  const mgY = (v: number) => bottom - (v / maxMargin) * H;
+  const marginMin = margin_pct?.length ? Math.min(0, ...margin_pct) : 0;
+  const marginMax = margin_pct?.length ? Math.max(40, ...margin_pct) : 40;
+  const marginPad = (marginMax - marginMin) * 0.15 || 1;
+  const marginDomainMin = marginMin - marginPad;
+  const marginDomainMax = marginMax + marginPad;
+  const mgY = (v: number) =>
+    bottom - ((v - marginDomainMin) / (marginDomainMax - marginDomainMin)) * H;
 
   const cx = (i: number) => left + slot * (i + 0.5);
 

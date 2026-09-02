@@ -343,3 +343,83 @@ export async function getHint(slug: string): Promise<Hint | null> {
   });
   return (rs.rows[0] as unknown as Hint) ?? null;
 }
+
+/** หุ้นหนึ่งตัว + run ล่าสุด + ผลวิเคราะห์/ทฤษฎีของ run นั้น (ใช้จัดอันดับหน้า /best-price) */
+export interface LatestSnapshot {
+  stock: Stock;
+  run: ResearchRun;
+  analysis: Analysis | null;
+  theories: Theory[];
+}
+
+/** ดึง run ล่าสุดของหุ้นทุกตัวพร้อม analysis + theories ในคำสั่งเดียว */
+export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s) return [];
+    const out: LatestSnapshot[] = [];
+    for (const stock of s.stocks) {
+      const run = latestRunOf(s.research_runs, stock.ticker);
+      if (!run) continue;
+      out.push({
+        stock,
+        run,
+        analysis: s.analyses.find((a) => a.run_id === run.id) ?? null,
+        theories: s.theories.filter((t) => t.run_id === run.id).sort((a, b) => a.id - b.id),
+      });
+    }
+    return out;
+  }
+
+  const db = getDb();
+  const runsRs = await db.execute(`
+    SELECT r.*, s.name, s.exchange, s.sector, s.currency, s.created_at AS stock_created_at
+    FROM research_runs r
+    JOIN stocks s ON s.ticker = r.ticker
+    WHERE r.id = (SELECT id FROM research_runs WHERE ticker = s.ticker ORDER BY run_date DESC, id DESC LIMIT 1)
+  `);
+  const rows = runsRs.rows as unknown as (ResearchRun & {
+    name: string;
+    exchange: string | null;
+    sector: string | null;
+    currency: string;
+    stock_created_at: string;
+  })[];
+  if (rows.length === 0) return [];
+
+  const ids = rows.map((r) => r.id);
+  const placeholders = ids.map(() => "?").join(",");
+  const [analysesRs, theoriesRs] = await Promise.all([
+    db.execute({ sql: `SELECT * FROM analyses WHERE run_id IN (${placeholders})`, args: ids }),
+    db.execute({
+      sql: `SELECT * FROM theories WHERE run_id IN (${placeholders}) ORDER BY id ASC`,
+      args: ids,
+    }),
+  ]);
+  const analyses = analysesRs.rows as unknown as Analysis[];
+  const theories = theoriesRs.rows as unknown as Theory[];
+
+  return rows.map((r) => ({
+    stock: {
+      ticker: r.ticker,
+      name: r.name,
+      exchange: r.exchange,
+      sector: r.sector,
+      currency: r.currency,
+      created_at: r.stock_created_at,
+    },
+    run: {
+      id: r.id,
+      ticker: r.ticker,
+      run_date: r.run_date,
+      status: r.status,
+      summary_md: r.summary_md,
+      price_at_run: r.price_at_run,
+      details_json: r.details_json,
+      entry_plan_json: r.entry_plan_json,
+      created_at: r.created_at,
+    },
+    analysis: analyses.find((a) => a.run_id === r.id) ?? null,
+    theories: theories.filter((t) => t.run_id === r.id),
+  }));
+}
