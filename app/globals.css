@@ -1722,3 +1722,100 @@ body::after {
 .log-table .num { text-align: right; font-family: var(--font-data); }
 .log-dim { color: var(--text-faint); font-size: 12px; }
 .log-path { font-family: var(--font-data); font-size: 12px; }
+
+/* ============================================================
+   Donate (PromptPay Thai QR)
+   ============================================================ */
+.site-nav a.nav-donate { color: var(--green); }
+.site-nav a.nav-donate:hover { color: var(--green); }
+
+.footer-donate {
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.footer-donate a { color: var(--green); }
+
+.donate-head { max-width: 640px; margin-bottom: 32px; }
+.donate-head .eyebrow {
+  font-family: var(--font-data);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--green);
+}
+.donate-lede { color: var(--text-dim); line-height: 1.75; margin: 0; }
+
+.donate-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  gap: 40px;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .donate-grid { grid-template-columns: minmax(0, 1fr); }
+  .donate-card { max-width: 340px; margin: 0 auto; width: 100%; }
+}
+
+/* การ์ด QR เป็นพื้นขาวเสมอแม้ธีมมืด — แอปธนาคารสแกนติดง่ายกว่า และหน้าตาเหมือนป้าย Thai QR จริง */
+.donate-card {
+  background: #ffffff;
+  color: #0b1a33;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+}
+.thaiqr-strip {
+  background: #113566;
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  font-family: var(--font-data);
+  font-size: 12px;
+  letter-spacing: 0.1em;
+}
+.thaiqr-title { font-weight: 600; }
+.thaiqr-pp { opacity: 0.8; letter-spacing: 0.02em; }
+.donate-qr { padding: 22px 26px 8px; }
+.donate-qr svg { display: block; width: 100%; height: auto; }
+.donate-qr-missing {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin: 22px 26px 8px;
+  padding: 0;
+  border: 2px dashed #c9d2e0;
+  color: #6b7a90;
+  font-size: 14px;
+}
+.donate-amount {
+  text-align: center;
+  padding: 6px 18px 4px;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 6px;
+}
+.donate-amount-free { font-size: 14px; color: #475569; }
+.donate-recipient {
+  text-align: center;
+  margin: 0;
+  padding: 4px 18px 18px;
+  font-size: 13px;
+  color: #64748b;
+  font-family: var(--font-data);
+}
+
+.donate-side h2 { margin-top: 0; font-size: 18px; }
+.donate-steps { margin: 0; padding-left: 20px; color: var(--text-dim); line-height: 1.9; }
+.donate-note {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-faint);
+  font-size: 13px;
+}

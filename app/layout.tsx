@@ -59,6 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <nav className="site-nav">
                 <Link href="/best-price">ราคาน่าสนใจ</Link>
                 <Link href="/insights">Insights</Link>
+                <Link href="/donate" className="nav-donate">Donate</Link>
                 {isAdmin(email) && <Link href="/admin/logs">Log</Link>}
                 <form
                   className="signout-form"
@@ -76,6 +77,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           </div>
         </header>
         <main className="container">{children}</main>
+        {email && (
+          <div className="container footer-donate">
+            รายงานมีประโยชน์กับคุณไหม? <Link href="/donate">เลี้ยงกาแฟคนทำระบบผ่าน PromptPay →</Link>
+          </div>
+        )}
         <footer className="container disclaimer">
           ข้อมูลในระบบนี้สร้างโดย AI pipeline เพื่อการศึกษาเท่านั้น
           ไม่ใช่คำแนะนำการลงทุน โปรดตรวจสอบข้อมูลจากแหล่งทางการก่อนตัดสินใจใดๆ
