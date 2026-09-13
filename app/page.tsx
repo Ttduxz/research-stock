@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { listStocksWithLatest, listHints } from "@/lib/db";
-import VerdictBadge from "@/components/VerdictBadge";
-import HintBadge from "@/components/HintBadge";
+import StockBrowser from "@/components/StockBrowser";
+import HintCard from "@/components/HintCard";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,10 @@ const UNKNOWN_SECTOR = "ไม่ระบุกลุ่มอุตสาห�
 
 // sector ใน DB เป็นข้อความละเอียด (เช่น "Technology — Cybersecurity (Software Infrastructure)")
 // หน้าแรกจับกลุ่มกว้างๆ จาก keyword แทน ส่วนหน้ารายละเอียดหุ้นยังโชว์ข้อความเต็ม
+// พลังงาน/ยูทิลิตี้ต้องมาก่อน retail เพราะ sector บางตัว (เช่น NRG "...& Retail Energy") มีคำว่า retail ปนอยู่
+// แต่โดยธุรกิจจริงควรจัดกลุ่มพลังงานด้วยกัน ไม่ใช่ retail ทั่วไป — ลำดับในอาเรย์นี้มีผล (แมตช์อันแรกที่เจอ)
 const BROAD_SECTORS: [string, RegExp][] = [
+  ["พลังงาน / สาธารณูปโภค (Energy & Utilities)", /utilit|power producer|power generation|energy infrastructure|electrical equipment|renewable power|nuclear/i],
   ["ยา / สุขภาพ (Healthcare)", /health|biopharma|pharma/i],
   ["การเงิน / เครือข่ายชำระเงิน (Payments & Financials)", /payment|financial/i],
   ["สื่อ / บันเทิง (Media & Entertainment)", /media|entertainment|streaming/i],
@@ -31,7 +34,10 @@ function broadSector(sector: string | null): string {
 
 export default async function HomePage() {
   const [stocks, hints] = await Promise.all([listStocksWithLatest(), listHints()]);
-  const latestHints = hints.slice(0, 3);
+  // หน้าแรกโชว์แค่ 3 อันดับที่ impact สูงสุด (ไม่ใช่ 3 อันล่าสุด) — เรียงตาม impact_score แล้วค่อย tie-break ด้วยความใหม่
+  const topHints = [...hints]
+    .sort((a, b) => (b.impact_score ?? 0) - (a.impact_score ?? 0) || b.run_date.localeCompare(a.run_date))
+    .slice(0, 3);
 
   const sectors = new Map<string, typeof stocks>();
   for (const s of stocks) {
@@ -45,26 +51,19 @@ export default async function HomePage() {
     if (b === UNKNOWN_SECTOR) return -1;
     return a.localeCompare(b);
   });
+  const sections = sorted.map(([sector, group]) => ({ sector, stocks: group }));
 
   return (
     <>
       {hints.length > 0 && (
         <section style={{ marginBottom: 32 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
-            <h2 className="sector-heading" style={{ marginTop: 0 }}>งานวิจัยพิเศษ / Insights</h2>
+            <h2 className="sector-heading" style={{ marginTop: 0 }}>งานวิจัยพิเศษ / Insights — impact สูงสุด</h2>
             <Link href="/insights" style={{ fontSize: 13 }}>ดูทั้งหมด ({hints.length}) →</Link>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {latestHints.map((h) => (
-              <Link key={h.slug} href={`/insights/${h.slug}`} className="card" style={{ display: "block", borderLeft: "3px solid var(--accent)", margin: 0 }}>
-                <div className="card-title-row">
-                  <h3>{h.title}</h3>
-                  <HintBadge direction={h.direction} magnitude={h.magnitude} />
-                </div>
-                {h.dek && (
-                  <p style={{ margin: "6px 0 0", color: "var(--text-dim)", fontSize: 14 }}>{h.dek}</p>
-                )}
-              </Link>
+          <div className="stock-grid">
+            {topHints.map((h) => (
+              <HintCard key={h.slug} hint={h} featured />
             ))}
           </div>
         </section>
@@ -77,7 +76,7 @@ export default async function HomePage() {
         )}
       </div>
       <p className="subtitle">
-        ผลจาก pipeline: research team → analyze team → theorie team
+        ทุกรายงานผ่าน 3 ขั้น: ค้นข้อมูล → วิเคราะห์ → ตั้งทฤษฎีและวางแผนสะสม
       </p>
 
       {stocks.length === 0 ? (
@@ -86,32 +85,7 @@ export default async function HomePage() {
           <code>/research-stock &lt;TICKER&gt;</code>
         </div>
       ) : (
-        sorted.map(([sector, group]) => (
-          <section key={sector}>
-            <h2 className="sector-heading">
-              {sector} <span className="sector-count">({group.length})</span>
-            </h2>
-            <div className="stock-grid">
-              {group.map((s) => (
-                <Link key={s.ticker} href={`/stock/${s.ticker}`} className="stock-card">
-                  <div className="ticker">{s.ticker}</div>
-                  <div className="name">{s.name}</div>
-                  <div className="meta">
-                    <VerdictBadge verdict={s.latest_verdict} />
-                    <span>
-                      {s.latest_price != null && (
-                        <>
-                          {s.latest_price.toLocaleString()} {s.currency} ·{" "}
-                        </>
-                      )}
-                      {s.latest_run_date ?? "ยังไม่มี run"}
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ))
+        <StockBrowser sections={sections} />
       )}
     </>
   );

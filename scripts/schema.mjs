@@ -63,6 +63,7 @@ export const SCHEMA = [
     dek             TEXT,
     direction       TEXT,
     magnitude       TEXT,
+    impact_score    INTEGER,
     discovered_from TEXT,
     run_date        TEXT NOT NULL,
     stats_json      TEXT,
@@ -72,12 +73,60 @@ export const SCHEMA = [
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
 
+  `CREATE TABLE IF NOT EXISTS reviews (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker          TEXT NOT NULL REFERENCES stocks(ticker),
+    review_date     TEXT NOT NULL,
+    base_run_id     INTEGER REFERENCES research_runs(id),
+    stance          TEXT NOT NULL,
+    review_md       TEXT NOT NULL,
+    price_at_review REAL,
+    price_move_pct  REAL,
+    escalated_by    TEXT,
+    escalate_reason TEXT,
+    action_md       TEXT,
+    plan_status     TEXT,
+    resulting_run_id INTEGER REFERENCES research_runs(id),
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+
+  `CREATE TABLE IF NOT EXISTS thesis_checks (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    ticker        TEXT NOT NULL,
+    review_id     INTEGER NOT NULL REFERENCES reviews(id),
+    origin_run_id INTEGER REFERENCES research_runs(id),
+    theory_title  TEXT,
+    claim_type    TEXT NOT NULL,
+    claim         TEXT NOT NULL,
+    status        TEXT NOT NULL,
+    evidence_md   TEXT,
+    sources_json  TEXT,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+
+
+  // log การเข้าใช้เว็บ (Google login) — ไม่อยู่ใน export-db.mjs ตั้งใจ ไม่ให้อีเมลผู้ใช้หลุดไปกับ snapshot
+  `CREATE TABLE IF NOT EXISTS access_logs (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    email       TEXT NOT NULL,
+    name        TEXT,
+    event       TEXT NOT NULL,
+    path        TEXT,
+    ip          TEXT,
+    user_agent  TEXT,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+
   `CREATE INDEX IF NOT EXISTS idx_runs_ticker ON research_runs(ticker, run_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_access_email ON access_logs(email, created_at)`,
 
   `CREATE INDEX IF NOT EXISTS idx_items_run ON research_items(run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_analyses_run ON analyses(run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_theories_run ON theories(run_id)`,
   `CREATE INDEX IF NOT EXISTS idx_hints_run_date ON hints(run_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_reviews_ticker ON reviews(ticker, review_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_checks_review ON thesis_checks(review_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_checks_ticker ON thesis_checks(ticker, status)`,
 ];
 
 // ALTER สำหรับ DB เก่าที่สร้างก่อน column ใหม่ — รันด้วย try/catch (ซ้ำ = ข้าม)
@@ -87,6 +136,25 @@ export const MIGRATIONS = [
   // hints เคยมีแค่ severity (risk-high/mid/low) — เปลี่ยนเป็น direction+magnitude ให้จับเรื่องบวกได้ด้วย ไม่ใช่แค่ความเสี่ยง
   `ALTER TABLE hints ADD COLUMN direction TEXT`,
   `ALTER TABLE hints ADD COLUMN magnitude TEXT`,
+  // magnitude เป็นแค่ 3 ระดับ (high/mid/low) จัดลำดับละเอียดไม่ได้เวลามีหลาย hint ระดับเดียวกัน
+  // impact_score (1-100) ให้จัดอันดับละเอียดขึ้น ใช้เลือก "3 อันดับ impact สูงสุด" ในหน้าแรก
+  `ALTER TABLE hints ADD COLUMN impact_score INTEGER`,
+  // รอบติดตามรายสัปดาห์ (ดู .claude/commands/review-stock.md) — run ผูกกันเป็นสายแทนที่จะเป็นเกาะแยก
+  // run_type: 'full' (pipeline เต็ม) | 'update' (reviewer + analyst/theorist) | 'review' (reviewer อย่างเดียว)
+  `ALTER TABLE research_runs ADD COLUMN run_type TEXT`,
+  `ALTER TABLE research_runs ADD COLUMN prev_run_id INTEGER`,
+  `ALTER TABLE research_runs ADD COLUMN delta_json TEXT`,
+  // research_items เปลี่ยนจาก 'ของรอบนั้น' เป็นคลังระดับ ticker ที่มีอายุขัย:
+  // run_id = รอบที่เจอครั้งแรก, last_seen_run_id = รอบล่าสุดที่ยังเจอ, status = active|archived|superseded
+  `ALTER TABLE research_items ADD COLUMN last_seen_run_id INTEGER`,
+  `ALTER TABLE research_items ADD COLUMN status TEXT`,
+  `ALTER TABLE research_items ADD COLUMN superseded_by INTEGER`,
+  `ALTER TABLE research_items ADD COLUMN first_seen_on TEXT`,
+  `ALTER TABLE research_items ADD COLUMN last_seen_on TEXT`,
+  // index นี้อยู่ท้าย MIGRATIONS ไม่ใช่ใน SCHEMA เพราะอ้างคอลัมน์ status ที่เพิ่งถูก ALTER เพิ่มด้านบน
+  `ALTER TABLE reviews ADD COLUMN action_md TEXT`,
+  `ALTER TABLE reviews ADD COLUMN plan_status TEXT`,
+  `CREATE INDEX IF NOT EXISTS idx_items_ticker ON research_items(ticker, status)`,
 ];
 
 // backfill ครั้งเดียว: แถวเก่าที่ยังมีแค่ severity (คอลัมน์เก่า ไม่ได้อยู่ใน SCHEMA แล้วแต่ยังอยู่ใน DB จริงถ้าเคยสร้างไว้)
@@ -99,6 +167,21 @@ const BACKFILL = [
        WHEN 'risk-low' THEN 'low'
        ELSE NULL END
    WHERE direction IS NULL AND severity IS NOT NULL`,
+  // ค่าเริ่มต้นคร่าวๆ จาก magnitude สำหรับแถวที่ไม่มี impact_score (เช่น hint เก่าก่อนมีคอลัมน์นี้)
+  // ค่าที่ hint-analyst ประเมินเองตอน ingest จะแม่นกว่านี้เสมอ — นี่แค่กันไม่ให้เป็น NULL เฉยๆ
+  `UPDATE hints SET impact_score = CASE magnitude
+     WHEN 'high' THEN 70
+     WHEN 'mid' THEN 45
+     WHEN 'low' THEN 20
+     ELSE 45 END
+   WHERE impact_score IS NULL`,
+  // แถวเก่าก่อนมีระบบรอบติดตาม: ทุก run ที่มีอยู่คือ full run, ทุก item ยัง active
+  `UPDATE research_runs SET run_type = 'full' WHERE run_type IS NULL`,
+  `UPDATE research_items SET status = 'active' WHERE status IS NULL`,
+  `UPDATE research_items SET last_seen_run_id = run_id WHERE last_seen_run_id IS NULL`,
+  `UPDATE research_items SET first_seen_on = (SELECT run_date FROM research_runs WHERE id = research_items.run_id)
+   WHERE first_seen_on IS NULL`,
+  `UPDATE research_items SET last_seen_on = first_seen_on WHERE last_seen_on IS NULL`,
 ];
 
 export async function applySchema(db) {

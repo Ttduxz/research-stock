@@ -6,7 +6,7 @@ import { writeFileSync } from "node:fs";
 import { openDb } from "./db-client.mjs";
 
 const db = openDb();
-const tables = ["stocks", "research_runs", "research_items", "analyses", "theories", "hints"];
+const tables = ["stocks", "research_runs", "research_items", "analyses", "theories", "hints", "reviews", "thesis_checks"];
 const snapshot = { exported_at: new Date().toISOString() };
 
 for (const t of tables) {

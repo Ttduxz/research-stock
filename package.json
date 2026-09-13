@@ -13,12 +13,20 @@
     "list-hints": "node scripts/list-hints.mjs",
     "get-hint": "node scripts/get-hint.mjs",
     "db:export": "node scripts/export-db.mjs",
-    "deploy": "node scripts/export-db.mjs && npx vercel deploy --prod --yes"
+    "deploy": "node scripts/export-db.mjs && npx vercel deploy --prod --yes",
+    "ingest-review": "node scripts/ingest-review.mjs",
+    "review:due": "node scripts/price-delta.mjs --due",
+    "review:context": "node scripts/prev-context.mjs",
+    "items:archive": "node scripts/archive-items.mjs",
+    "items:dedupe": "node scripts/dedupe-items.mjs",
+    "review:summary": "node scripts/review-summary.mjs",
+    "review:progress": "node scripts/review-progress.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
     "marked": "^14.1.2",
     "next": "^15.4.5",
+    "next-auth": "^5.0.0-beta.32",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
   },

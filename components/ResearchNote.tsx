@@ -88,7 +88,10 @@ export default function ResearchNote({ details }: { details: RunDetails }) {
         <div className="rail">
           {d.stats.map((s, i) => (
             <div key={i} className="stat">
-              <span className="stat-k">{s.label}</span>
+              <span className="stat-k">
+                {/* กัน "ราคาล่าสุด" ชนกับราคาล่าสุดจริงบนหัวหน้า — ตัวเลขนี้คือราคา ณ วันที่ทำรายงาน */}
+                {s.label.includes("ราคาล่าสุด") ? s.label.replace("ราคาล่าสุด", "ราคาตอนทำรายงาน") : s.label}
+              </span>
               <span className="stat-v">{s.value}</span>
               {s.note && (
                 <span className={`stat-n ${s.tone === "up" ? "up" : s.tone === "down" ? "dn" : ""}`}>

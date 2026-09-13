@@ -1,0 +1,556 @@
+/**
+ * หน้าตัวอย่าง (mock) — ไม่ใช่ข้อมูลจริง ไม่ได้อ่านจาก DB
+ *
+ * รวม "ทุกอย่างที่รอบทบทวนทำให้เปลี่ยนได้" ไว้ในหน้าเดียว เพื่อดูว่าแต่ละแบบควรบอกยังไง
+ * ตัวเลข/ข้อความทั้งหมดแต่งขึ้นเพื่อดูดีไซน์ ลบหน้านี้ทิ้งได้เมื่อสรุปดีไซน์เสร็จ
+ */
+import Link from "next/link";
+
+const PREV = "2026-09-02";
+const NOW = "2026-09-17";
+
+export default function MockReportPage() {
+  return (
+    <>
+      <div className="crumbs">
+        <Link href="/stock/NVDA">← กลับหน้า NVDA จริง</Link>
+      </div>
+
+      <div className="mock-warn">
+        หน้าตัวอย่างสมมุติ — ตัวเลขและข้อความทั้งหมด <strong>แต่งขึ้นเพื่อดูดีไซน์</strong> ไม่ใช่ข้อมูลจริง
+        และไม่ได้อยู่ในฐานข้อมูล · สมมุติว่างบ Q3 ออกมา gross margin 71.8% ต่ำกว่าที่ทฤษฎีเดิมสมมุติไว้
+      </div>
+
+      <div className="mock-index">
+        <span className="mi-lead">จุดที่เปลี่ยนได้ทั้งหมด 10 จุด</span>
+        <ol>
+          {[
+            "บรรทัด “ต้องทำอะไรไหม” — มี 4 สถานะ + มุมมองรวมและราคาบนหัวหน้า",
+            "สรุปภาพรวม + คะแนนพื้นฐาน/โมเมนตัม/ความเสี่ยง",
+            "โซนซื้อแต่ละไม้ + สัดส่วน (เลื่อนขึ้น/ลง หรือเท่าเดิม)",
+            "แผนเข้าซื้อฉบับข้อความ + เงื่อนไขที่ทำให้แผนพัง",
+            "ชุดข้อสมมุติ — เพิ่มข้อใหม่ / ตัดข้อเก่าออก",
+            "ผลตรวจข้อสมมุติ (รอบก่อน vs รอบนี้) + เป้าราคา + ความเชื่อมั่น + ทฤษฎีใหม่/ที่ยกเลิก",
+            "คลังข่าว — เข้าใหม่ / ถูกแทนที่ / เข้ากรุ",
+            "ตารางงบการเงิน — คอลัมน์ไตรมาสใหม่",
+            "ประเด็นใหญ่ที่กระทบทั้งอุตสาหกรรม (รายงานแยก)",
+            "ประวัติการทบทวน — สัปดาห์ละบรรทัด",
+          ].map((t, i) => (
+            <li key={i}>{t}</li>
+          ))}
+        </ol>
+      </div>
+
+      {/* ── หัวหุ้น: verdict เปลี่ยนได้ ── */}
+      <div className="stock-head ticker-head">
+        <h1>NVDA</h1>
+        <span className="price">198.40 USD</span>
+        <span className="price-when">ราคาล่าสุด {NOW}</span>
+        <span className="badge neutral">— Neutral</span>
+        <span className="chg-from">เดิม Bullish</span>
+      </div>
+      <p className="price-note">
+        รายงานด้านล่างเขียนตอนราคา 205.10 USD ({NOW}) — ตัวเลขและช่วงราคาทั้งหมดในรายงานอ้างอิงราคานั้น
+      </p>
+      <p className="subtitle">NVIDIA Corporation · NASDAQ · Technology / Semiconductors</p>
+
+      {/* ── 1. พาดหัว: ต้องทำอะไรไหม ── */}
+      <div className="rv-action ps-plan-live">
+        <div className="rv-action-top">
+          <span className="rv-action-label">ต้องวิเคราะห์ใหม่ — แผนถูกปรับ</span>
+          <span className="rv-action-when">
+            <span className="cmp-new">ใหม่</span> จากรอบทบทวน {NOW} · ราคา −8.8% จากวันที่ทำรายงานเดิม
+          </span>
+        </div>
+        <p className="rv-action-text">
+          โซนสะสมถูกเลื่อนลงทั้งไม้ 1 และไม้ 2 เพราะสมมุติฐานเรื่อง gross margin 73-75% ถูกหักล้างจากงบ Q3
+          (จริง 71.8%) — ราคาปัจจุบัน $198.40 อยู่ในโซนไม้ 1 ใหม่แล้ว แต่เงื่อนไขยังไม่ครบ ต้องรอ margin
+          ยืนเหนือ 72% อีกหนึ่งไตรมาสก่อน
+        </p>
+      </div>
+
+      <div className="ps-samples">
+        <span className="mi-lead">บรรทัดบนสุดเปลี่ยนได้ 4 แบบ ตามสถานะของแผน</span>
+        {[
+          { cls: "no-action", label: "ยังไม่ต้องทำอะไร", txt: "ราคายังไม่เข้าโซนซื้อไหนเลย และไม่มีข้อสมมุติไหนเปลี่ยน" },
+          { cls: "watch", label: "ยังไม่ต้องทำอะไร แต่มีเรื่องรอดู", txt: "ยังไม่ถึงจังหวะ แต่มีเรื่องเฉพาะที่ต้องตามให้จบ ระบุว่าดูอะไรและรู้ผลเมื่อไหร่" },
+          { cls: "plan-live", label: "ราคาเข้าโซนซื้อของแผนแล้ว", txt: "ราคาเข้าโซนไม้ที่วางไว้ — บอกด้วยว่าเงื่อนไขของไม้นั้นครบหรือยัง" },
+          { cls: "plan-broken", label: "แผนเดิมใช้ไม่ได้แล้ว", txt: "เข้าเงื่อนไขที่ทำให้แผนพัง หรือมีข้อสมมุติหลักพัง — ต้องรอรอบวิเคราะห์ใหม่" },
+        ].map((s) => (
+          <div key={s.cls} className={`ps-row ps-${s.cls}`}>
+            <span className="ps-label">{s.label}</span>
+            <span className="ps-txt">{s.txt}</span>
+          </div>
+        ))}
+      </div>
+
+      <div className="weeks">
+        <span className="wk-lead">เทียบกับรอบที่แล้ว</span>
+        <div className="wk-row wk-two">
+          <div className="wk">
+            <div className="wk-top">
+              <span className="wk-date">รอบก่อน · 2026-09-10</span>
+              <span className="badge rv-shifted">น้ำหนักเปลี่ยน</span>
+              <span className="wk-price">$209.80</span>
+            </div>
+            <p className="wk-act">
+              ยังไม่ต้องทำอะไร — ผู้ผลิตหน่วยความจำเลื่อนกำหนดผลิต ทำให้ข้อสมมุติเรื่องกำลังผลิตอ่อนลง
+              แต่ยังไม่ถึงขั้นต้องแก้แผน
+            </p>
+          </div>
+          <div className="wk wk-now">
+            <div className="wk-top">
+              <span className="wk-date">รอบนี้ · 2026-09-17</span>
+              <span className="badge rv-escalate">ต้องวิเคราะห์ใหม่</span>
+              <span className="wk-price">$198.40</span>
+            </div>
+            <p className="wk-act">
+              <b>เปลี่ยนความเห็น</b> — งบออกมา margin ต่ำกว่าที่ทฤษฎีตั้งไว้ ข้อสมมุติหลักพัง
+              จึงเขียนรายงานใหม่และเลื่อนโซนซื้อลงทั้งชุด
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mock-tag">
+        1 · พาดหัว &mdash; เปลี่ยนได้ทุกสัปดาห์</div>
+
+      {/* ── 2. สรุปภาพรวม: verdict / คะแนน / ความเสี่ยง ── */}
+      <h2>📋 สรุปภาพรวม — รอบวันที่ {NOW}</h2>
+      <div className="chg-banner">
+        <span className="cmp-new">ใหม่</span>
+        <div className="cb-items">
+          <span className="cb-item">
+            <span className="cb-k">verdict</span>
+            <s>bullish</s> → <b>neutral</b>
+          </span>
+          <span className="cb-item">
+            <span className="cb-k">พื้นฐาน</span>
+            <s>8</s> → <b>7</b>
+          </span>
+          <span className="cb-item">
+            <span className="cb-k">momentum</span>
+            <s>8</s> → <b>5</b>
+          </span>
+          <span className="cb-item">
+            <span className="cb-k">ความเสี่ยง</span>
+            <b>high</b> เท่าเดิม
+          </span>
+        </div>
+      </div>
+      <div className="card">
+        <p style={{ margin: 0, lineHeight: 1.85 }}>
+          <b>Verdict: neutral</b> — งบ Q3 ยืนยันว่ารายได้ยังโตตามกรอบ แต่ margin หลุดกรอบที่ทฤษฎีตั้งไว้
+          ทำให้กลไกสร้างกำไรของ thesis หลักอ่อนลง ไม่ใช่ demand พังแต่เป็นราคาที่ต้องจ่ายเพื่อรักษาส่วนแบ่ง
+        </p>
+      </div>
+      <div className="mock-tag">
+        2 · สรุป + คะแนน &mdash; เปลี่ยนเฉพาะรอบวิเคราะห์ใหม่</div>
+
+      {/* ── 3. แผนเข้าสะสม ── */}
+      <h2>🎯 ราคาที่น่าสะสม — แบ่งไม้ 1/2/3</h2>
+      <div className="plan-diff">
+        <div className="pd-head">
+          <span className="cmp-new">ใหม่</span>
+          <span className="pd-title">
+            แผนถูกปรับในรอบ {NOW} — เทียบกับรอบ {PREV}
+          </span>
+        </div>
+        <ul className="pd-list">
+          <li>
+            <span className="pd-lv">ไม้ 1</span>
+            <span className="pd-old">$212-216</span>
+            <span className="pd-arrow">→</span>
+            <span className="pd-new">$196-202</span>
+            <span className="pd-dir down">เลื่อนลง 7.0%</span>
+          </li>
+          <li>
+            <span className="pd-lv">ไม้ 2</span>
+            <span className="pd-old">$187.5-192.5</span>
+            <span className="pd-arrow">→</span>
+            <span className="pd-new">$176-182</span>
+            <span className="pd-dir down">เลื่อนลง 5.8%</span>
+          </li>
+          <li className="pd-same">
+            <span className="pd-lv">ไม้ 3</span>
+            <span className="pd-nochange">$160-165 · เท่าเดิม (สัดส่วนเพิ่มจาก 20% เป็น 35%)</span>
+          </li>
+        </ul>
+        <p className="pd-why">
+          <b>ทำไมถึงเปลี่ยน:</b> รอบทบทวน {NOW} พบว่าสมมุติฐาน &ldquo;Vera Rubin ramp ได้โดยไม่มีปัญหา
+          yield/ความร้อน และรักษา gross margin โซน 73-75%&rdquo; อยู่ในสถานะ{" "}
+          <span className="badge ck ck-broken">
+            <span className="ck-icon">✕</span>พังแล้ว
+          </span>{" "}
+          รอบวิเคราะห์ใหม่จึงคำนวณโซนใหม่บน margin 71-72%
+        </p>
+      </div>
+      <div className="card">
+        <div className="tranches">
+          {[
+            { lv: 1, now: "$196-202", was: "$212-216", alloc: "30%", wasAlloc: "35%", moved: true },
+            { lv: 2, now: "$176-182", was: "$187.5-192.5", alloc: "35%", wasAlloc: "35%", moved: true },
+            { lv: 3, now: "$160-165", was: "$160-165", alloc: "35%", wasAlloc: "20%", moved: false },
+          ].map((t) => (
+            <div key={t.lv} className={`tranche t${t.lv}${t.moved ? " tr-changed" : ""}`}>
+              <div className="tr-head">
+                <span className="tr-name">ไม้ {t.lv}</span>
+                <span className="tr-alloc">
+                  {t.alloc}
+                  {t.alloc !== t.wasAlloc && <span className="tr-was"> (เดิม {t.wasAlloc})</span>}
+                </span>
+              </div>
+              <div className="tr-price">{t.now}</div>
+              {t.moved ? (
+                <div className="tr-moved">
+                  <span className="tr-was-price">{t.was}</span>
+                  <span className="tr-arrow">→</span>
+                  <span className="tr-moved-tag">เลื่อนลงจากรอบ {PREV}</span>
+                </div>
+              ) : (
+                <div className="tr-moved tr-unchanged">โซนเท่าเดิมจากรอบ {PREV}</div>
+              )}
+              <div className="tr-note">เหตุผลของไม้นี้ (ตัวอย่าง)</div>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="mock-tag">
+        3 · โซนสะสม &mdash; เปลี่ยนได้เฉพาะรอบวิเคราะห์ใหม่ ไม่ใช่โดยรอบทบทวนรายสัปดาห์</div>
+
+      <div className="card">
+        <div className="chg-banner">
+          <span className="cmp-new">ใหม่</span>
+          <div className="cb-items">
+            <span className="cb-item">แนวทางรวมและเงื่อนไขที่ทำให้แผนพัง ถูกเขียนใหม่ในรอบนี้</span>
+          </div>
+        </div>
+        <p style={{ margin: "10px 0 0", lineHeight: 1.85 }}>
+          แนวทางคือทยอยสะสมแบบมีเพดาน ไม่ซื้อทีเดียวหมด — <s style={{ color: "var(--text-faint)" }}>เดิมให้เริ่มไม้แรกได้ทันทีที่ราคาเข้าโซน</s>{" "}
+          <b>รอบนี้เพิ่มเงื่อนไขว่าต้องเห็น margin ยืนเหนือ 72% อีกหนึ่งไตรมาสก่อน</b>
+        </p>
+        <div className="note" style={{ marginTop: 14, marginBottom: 0 }}>
+          <b>แผนนี้ใช้ไม่ได้เมื่อ</b> (เพิ่มข้อ 5 ในรอบนี้): (1) รายได้ต่ำกว่ากรอบสองไตรมาสติด (2) ลูกค้ารายใหญ่ตัดงบลงทุน
+          (3) คู่แข่งได้ส่วนแบ่งเกิน 25% (4) บริษัทต้องรับผิดชอบหนี้ของลูกค้าที่กู้มาซื้อของตัวเอง{" "}
+          <b>(5) margin ต่ำกว่า 70% ติดกันสองไตรมาส ← ใหม่</b>
+        </div>
+      </div>
+      <div className="mock-tag">
+        4 · แผนฉบับข้อความ &mdash; เปลี่ยนพร้อมโซนซื้อ และเงื่อนไขที่ทำให้แผนพังเพิ่ม/ลดได้
+      </div>
+
+
+      {/* ── 4. ทฤษฎี: claim 4 สถานะ + scenario + confidence + ทฤษฎีใหม่/ถูกยกเลิก ── */}
+      <h2>🔮 ทฤษฎีและข้อสมมุติ</h2>
+
+      <div className="card">
+        <div className="card-title-row">
+          <h3>Supply-constrained compounder: ดีมานด์ยังไม่ถูกเห็นเต็มจำนวน</h3>
+          <span className="chg-conf">
+            ความเชื่อมั่น <s>68</s> → <b>55</b>
+          </span>
+        </div>
+
+        <h4 style={{ margin: "14px 0 0", fontSize: 14 }}>สมมุติฐาน</h4>
+        <ul className="pill-list">
+          {[
+            {
+              claim: "Vera Rubin ramp ได้โดยไม่มีปัญหา yield/ความร้อน และรักษา gross margin โซน 73-75%",
+              st: "broken",
+              label: "พังแล้ว",
+              icon: "✕",
+              prevSt: "weakened",
+              prevLabel: "อ่อนลง",
+              prevIcon: "!",
+              prevEv: "มีข่าวว่าต้นทุนหน่วยความจำสูงขึ้น อาจกดดัน margin แต่ยังไม่มีตัวเลขจริงมายืนยัน จึงยังไม่สรุป",
+              ev: "งบ Q3 FY27 รายงาน gross margin 71.8% ต่ำกว่ากรอบล่าง 73% และ CFO ระบุว่าเป็น mix ถาวรจากสัดส่วน Rubin ที่ต้นทุน HBM สูงขึ้น ไม่ใช่ผลชั่วคราว",
+              src: "NVIDIA Q3 FY2027 earnings release · 2026-09-16",
+            },
+            {
+              claim: "AI capex อุตสาหกรรมปี 2026-2027 ยืนระดับ $800B-1T และไม่ถูกตัดกลางปี",
+              st: "confirmed",
+              label: "ยืนยันแล้ว",
+              icon: "✓",
+              prevSt: "confirmed",
+              prevLabel: "ยืนยันแล้ว",
+              prevIcon: "✓",
+              prevEv: "ลูกค้ารายใหญ่ 2 รายยืนยันงบลงทุนเดิมในไตรมาสก่อน",
+              ev: "hyperscaler 3 ใน 4 รายยืนยัน capex guidance เดิมในงบไตรมาสล่าสุด และ 1 รายปรับขึ้น",
+              src: "Microsoft FY27 Q1 earnings call · 2026-09-11",
+            },
+            {
+              claim: "TSMC + HBM/DRAM เพิ่มกำลังผลิตได้ตามแผนพอให้ NVDA ส่งมอบตามกรอบ FY28 ~70%",
+              st: "weakened",
+              label: "อ่อนลง",
+              icon: "!",
+              prevSt: "early",
+              prevLabel: "ยังบอกไม่ได้",
+              prevIcon: "○",
+              prevEv: "ยังไม่มีข้อมูลใหม่เรื่องกำลังผลิตในรอบนั้น",
+              ev: "SK hynix เลื่อนกำหนดเดินสาย HBM4 ที่ Cheongju ออกไปหนึ่งไตรมาส ยังไม่กระทบ FY27 แต่ทำให้กรอบ FY28 ตึงขึ้น",
+              src: "SK hynix investor briefing · 2026-09-14",
+            },
+            {
+              claim: "รายได้ Data Center จากจีน = ศูนย์ต่อไป (ไม่มี downside เพิ่ม เพราะถูกล้างออกจากประมาณการแล้ว)",
+              st: "too-early",
+              label: "ยังบอกไม่ได้",
+              icon: "○",
+              prevSt: "early",
+              prevLabel: "ยังบอกไม่ได้",
+              prevIcon: "○",
+              prevEv: "ยังไม่มีข้อมูลใหม่ในรอบนั้นเช่นกัน",
+              ev: "ยังไม่มีข้อมูลใหม่ในรอบนี้",
+              src: null,
+            },
+          ].map((c, i) => (
+            <li key={i} className="claim-checked">
+              <div className="cmp-subject">
+                <span className="cmp-origin">ข้อสมมุติจากรายงาน {PREV}</span>
+                <p>{c.claim}</p>
+              </div>
+              <div className="cmp-grid">
+                <div className="cmp-col cmp-prev">
+                  <span className="cmp-label">รอบก่อน 2026-09-10</span>
+                  <span className={`badge ck ck-${c.prevSt}`}>
+                    <span className="ck-icon">{c.prevIcon}</span>
+                    {c.prevLabel}
+                  </span>
+                  <p className="cmp-evidence">{c.prevEv}</p>
+                </div>
+                <div className={`cmp-col cmp-now ck-${c.st === "too-early" ? "early" : c.st}`}>
+                  <span className="cmp-label">
+                    <span className="cmp-new">รอบนี้</span> {NOW}
+                    {c.prevLabel !== c.label ? (
+                      <span className="cmp-chg">เปลี่ยนความเห็น</span>
+                    ) : (
+                      <span className="cmp-same">ยังคิดเหมือนเดิม</span>
+                    )}
+                  </span>
+                  <span className={`badge ck ck-${c.st === "too-early" ? "early" : c.st}`}>
+                    <span className="ck-icon">{c.icon}</span>
+                    {c.label}
+                  </span>
+                  <p className="cmp-evidence">{c.ev}</p>
+                  {c.src && (
+                    <div className="cmp-src">
+                      <a href="#">{c.src} ↗</a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+
+        <h4 style={{ margin: "18px 0 0", fontSize: 14 }}>Scenario</h4>
+        <div className="scenarios">
+          {[
+            { k: "bear", label: "BEAR", now: "150", was: "165", prob: "35%", wasProb: "20%" },
+            { k: "base", label: "BASE", now: "245", was: "280", prob: "45%", wasProb: "45%" },
+            { k: "bull", label: "BULL", now: "310", was: "355", prob: "20%", wasProb: "35%" },
+          ].map((s) => (
+            <div key={s.k} className={`scenario ${s.k}`}>
+              <div className="sc-name">{s.label}</div>
+              <div className="sc-target">{s.now} USD</div>
+              <div className="sc-diff">
+                <s>{s.was}</s> → {s.now} · โอกาส <s>{s.wasProb}</s> → {s.prob}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card">
+        <h4 style={{ margin: "0 0 10px", fontSize: 14 }}>ข้อสมมุติที่เปลี่ยนชุดในรอบนี้</h4>
+        <ul className="pill-list">
+          <li className="claim-added">
+            <span className="cmp-new">เพิ่มใหม่</span> ต้นทุน HBM ต่อชิปทรงตัวหรือลดลงหลังไตรมาสหน้า
+            <span className="claim-why">— ตั้งเพิ่มเพราะเป็นตัวแปรที่ทำให้ข้อเดิมพัง จึงต้องติดตามตรงๆ</span>
+          </li>
+          <li className="claim-dropped">
+            <span className="badge neutral">ตัดออก</span> Vera Rubin รักษา gross margin โซน 73-75%
+            <span className="claim-why">— ถูกหักล้างไปแล้วในรอบนี้ ไม่ต้องตามต่อ แต่ยังดูย้อนหลังได้ที่รอบ {PREV}</span>
+          </li>
+        </ul>
+      </div>
+      <div className="mock-tag">
+        5 · ชุดข้อสมมุติ &mdash; เพิ่ม/ตัดออกได้เฉพาะรอบวิเคราะห์ใหม่</div>
+
+      <div className="card thy-new">
+        <div className="card-title-row">
+          <h3>Margin reset: ตลาดกำลังคิดราคาบน margin ที่ไม่มีอีกแล้ว</h3>
+          <span className="badge dir-mixed">
+            <span className="cmp-new" style={{ marginRight: 6 }}>
+              ทฤษฎีใหม่
+            </span>
+            ความเชื่อมั่น 61
+          </span>
+        </div>
+        <p style={{ margin: "10px 0 0", lineHeight: 1.8, color: "var(--text-dim)" }}>
+          ทฤษฎีที่เพิ่งตั้งในรอบนี้เพราะของเดิมอธิบายสิ่งที่เกิดขึ้นไม่ได้แล้ว — ตั้งใหม่ได้เฉพาะรอบวิเคราะห์ใหม่เท่านั้น
+          รอบทบทวนรายสัปดาห์ตั้งทฤษฎีใหม่ไม่ได้ ทำได้แค่บอกว่าของเดิมยังจริงหรือไม่
+        </p>
+      </div>
+
+      <div className="card thy-dropped">
+        <div className="card-title-row">
+          <h3>Mix shift: margin จะถูกทดสอบก่อน revenue</h3>
+          <span className="badge neutral">ยกเลิกในรอบ {NOW}</span>
+        </div>
+        <p style={{ margin: "10px 0 0", lineHeight: 1.8 }}>
+          ทฤษฎีนี้ &ldquo;ถูกต้องแล้วจบ&rdquo; — สิ่งที่มันทำนายไว้เกิดขึ้นจริงในงบ Q3 จึงถูกยุบไปรวมกับ
+          Margin reset แทนที่จะถือต่อ ยังดูย้อนหลังได้ที่รอบ {PREV}
+        </p>
+      </div>
+      <div className="mock-tag">
+        6 · ทฤษฎี &mdash; ข้อสมมุติเปลี่ยนสถานะได้ทุกสัปดาห์ แต่ตัวทฤษฎี เป้าราคา และความเชื่อมั่น
+        เปลี่ยนได้เฉพาะรอบวิเคราะห์ใหม่
+      </div>
+
+      {/* ── 5. คลังข่าว ── */}
+      <h2>🔍 แหล่งข้อมูลที่ใช้ทำรายงาน</h2>
+      <div className="card news-row">
+        <span className="cmp-new">ใหม่</span>
+        <b>งบ Q3 FY2027: รายได้ $107.4B (+98% YoY) แต่ gross margin 71.8%</b>
+        <span className="news-meta">NVIDIA IR · 2026-09-16 · ความสำคัญ 5/5</span>
+      </div>
+      <div className="card news-row news-superseded">
+        <span className="badge neutral">ถูกแทนที่</span>
+        <b>นักวิเคราะห์คาด Q3 gross margin ทรงที่ 74%</b>
+        <span className="news-meta">แทนที่ด้วย &ldquo;งบ Q3 FY2027…&rdquo; · ยังดูย้อนหลังได้</span>
+      </div>
+      <div className="card news-row news-archived">
+        <span className="badge neutral">เข้ากรุ</span>
+        <b>บทวิเคราะห์ทั่วไปเดือน มิ.ย. 2026 (importance 2)</b>
+        <span className="news-meta">เก่ากว่า 75 วัน + ไม่ถูกอ้างในทฤษฎีปัจจุบัน · ไม่ได้ลบ</span>
+      </div>
+      <div className="mock-tag">
+        7 · คลังข่าว &mdash; เพิ่ม/ถูกแทนที่/เข้ากรุ ได้ทุกสัปดาห์</div>
+
+      <h2>💰 งบการเงิน</h2>
+      <div className="card">
+        <div className="chg-banner">
+          <span className="cmp-new">ใหม่</span>
+          <div className="cb-items">
+            <span className="cb-item">มีคอลัมน์ไตรมาสใหม่เข้ามา — เกิดเฉพาะรอบที่งบออก</span>
+          </div>
+        </div>
+        <div className="table-wrap" style={{ marginTop: 12 }}>
+          <table className="mock-tbl">
+            <thead>
+              <tr>
+                <th>($B)</th>
+                <th>Q1 FY27</th>
+                <th>Q2 FY27</th>
+                <th className="col-new">Q3 FY27 · ใหม่</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>รายได้</td>
+                <td>88.1</td>
+                <td>96.2</td>
+                <td className="col-new">107.4</td>
+              </tr>
+              <tr>
+                <td>Gross margin</td>
+                <td>75.0%</td>
+                <td>74.0%</td>
+                <td className="col-new">71.8%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="mock-tag">
+        8 · ตารางงบ &mdash; เพิ่มคอลัมน์ใหม่เมื่อมีงบออก (รอบเก็บข้อมูลเต็ม)</div>
+
+      <h2>🔔 ประเด็นใหญ่ที่กระทบทั้งอุตสาหกรรม</h2>
+      <div className="card hint-callout">
+        <div className="rv-head">
+          <span className="rv-eyebrow">
+            <span className="cmp-new">ใหม่</span> เจอในรอบทบทวน {NOW}
+          </span>
+          <span className="badge dir-negative">ความเสี่ยงสูง 78</span>
+        </div>
+        <b>ต้นทุนหน่วยความจำ HBM พุ่งทั้งอุตสาหกรรม — ใครแบกต้นทุนนี้</b>
+        <p style={{ margin: "8px 0 0", lineHeight: 1.8, color: "var(--text-dim)" }}>
+          เรื่องนี้กระทบกว้างกว่าหุ้นตัวนี้ตัวเดียว จึงถูกแยกเป็นรายงานของตัวเอง และถูกอ้างถึงในข้อสมมุติที่พัง —{" "}
+          <Link href="#">อ่านรายงานฉบับเต็ม →</Link>
+        </p>
+      </div>
+      <div className="mock-tag">
+        9 · ประเด็นระดับอุตสาหกรรม &mdash; เกิดได้ทุกสัปดาห์ถ้าเจอเรื่องที่ผ่านเกณฑ์ (ปกติไม่มี)
+      </div>
+
+      {/* ── 6. ประวัติการทบทวน ── */}
+      <h2>🔁 ประวัติการทบทวน</h2>
+      <div className="card">
+        <ul className="hist">
+          <li>
+            <span className="h-date">2026-09-17</span>
+            <span className="badge rv-escalate">ต้องวิเคราะห์ใหม่</span>
+            <span className="h-note">
+              งบออก margin 71.8% → ข้อสมมุติหลักพัง → เขียนรายงานใหม่ + เลื่อนโซนซื้อลงทั้งชุด
+            </span>
+          </li>
+          <li>
+            <span className="h-date">2026-09-10</span>
+            <span className="badge rv-shifted">น้ำหนักเปลี่ยน</span>
+            <span className="h-note">
+              ผู้ผลิตหน่วยความจำเลื่อนกำหนด → ข้อสมมุติเรื่องกำลังผลิตอ่อนลง แต่ยังไม่ต้องแก้แผน
+            </span>
+          </li>
+          <li>
+            <span className="h-date">2026-09-03</span>
+            <span className="badge rv-same">ยังมองเหมือนเดิม</span>
+            <span className="h-note">ไม่มีอะไรกระทบทฤษฎี</span>
+          </li>
+        </ul>
+      </div>
+      <div className="mock-tag">
+        10 · ประวัติ &mdash; ทุกสัปดาห์เพิ่มหนึ่งบรรทัด ไม่ทับของเก่า</div>
+
+      {/* ── สรุปแคตตาล็อก ── */}
+      <h2>สรุป: อะไรเปลี่ยนได้บ้าง ใครเปลี่ยน</h2>
+      <div className="table-wrap">
+        <table className="mock-tbl">
+          <thead>
+            <tr>
+              <th>สิ่งที่เปลี่ยน</th>
+              <th>ใครทำได้</th>
+              <th>ความถี่</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["ผลตรวจข้อสมมุติ (ยืนยัน/อ่อนลง/พัง/ยังบอกไม่ได้)", "รอบทบทวนรายสัปดาห์", "ทุกสัปดาห์"],
+              ["บรรทัด “ต้องทำอะไรไหม” + สถานะแผน", "รอบทบทวนรายสัปดาห์", "ทุกสัปดาห์"],
+              ["ข่าวเข้าคลัง / ถูกแทนที่ / เข้ากรุ", "รอบทบทวนรายสัปดาห์", "ทุกสัปดาห์"],
+              ["ประวัติการทบทวน", "ระบบบันทึกเอง", "ทุกสัปดาห์"],
+              ["มุมมองรวม + คะแนนพื้นฐาน/โมเมนตัม/ความเสี่ยง", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["โซนสะสมแต่ละไม้ + สัดส่วน + เงื่อนไข", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["เป้าราคาแย่สุด/ฐาน/ดีสุด + ความน่าจะเป็น + ความเชื่อมั่น", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["ตั้งทฤษฎีใหม่ / ยกเลิกทฤษฎีเดิม", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["งบการเงิน/ตารางย้อนหลัง", "รอบเก็บข้อมูลเต็ม", "เมื่อมีงบใหม่"],
+              ["แผนฉบับข้อความ + เงื่อนไขที่ทำให้แผนพัง", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["ชุดข้อสมมุติ (เพิ่ม/ตัดออก)", "รอบวิเคราะห์ใหม่", "เมื่อมีเรื่องใหญ่พอ"],
+              ["ประเด็นระดับอุตสาหกรรม (insight)", "รอบทบทวนรายสัปดาห์", "ปกติไม่มี"],
+            ].map((r, i) => (
+              <tr key={i}>
+                <td>{r[0]}</td>
+                <td className="mt-who">{r[1]}</td>
+                <td className="mt-freq">{r[2]}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="subtitle" style={{ marginTop: 22 }}>
+        รอบวิเคราะห์ใหม่เกิดเมื่อรอบทบทวนรายสัปดาห์เจอว่าข้อสมมุติสำคัญพัง หรือมีงบใหม่ออก หรือครบ 8 สัปดาห์ —
+        ตัวอย่างนี้เป็นการศึกษาเรื่องดีไซน์เท่านั้น ไม่ใช่คำแนะนำการลงทุน
+      </p>
+    </>
+  );
+}

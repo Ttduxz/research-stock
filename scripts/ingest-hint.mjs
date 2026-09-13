@@ -10,6 +10,7 @@
  *   "dek": "หนึ่งบรรทัดอธิบายว่าเรื่องนี้คืออะไร",
  *   "direction": "positive|negative|mixed",
  *   "magnitude": "high|mid|low",
+ *   "impact_score": 1-100 (ไม่ใส่ก็ได้ — จะ derive จาก magnitude แทน; ใส่เองถ้าอยากจัดอันดับละเอียดกว่า 3 ระดับของ magnitude),
  *   "discovered_from": "NVDA,MSFT",
  *   "run_date": "YYYY-MM-DD",
  *   "stats": [{ "label": "...", "value": "...", "note": "..." }],
@@ -49,6 +50,17 @@ if (hint.magnitude && !validMagnitude.includes(hint.magnitude)) {
   console.error(`magnitude ต้องเป็นหนึ่งใน: ${validMagnitude.join(", ")}`);
   process.exit(1);
 }
+if (hint.impact_score != null) {
+  const n = Number(hint.impact_score);
+  if (!Number.isInteger(n) || n < 1 || n > 100) {
+    console.error("impact_score ต้องเป็นจำนวนเต็ม 1-100");
+    process.exit(1);
+  }
+}
+// ไม่ใส่ impact_score มา — derive คร่าวๆ จาก magnitude กันไม่ให้เป็น NULL (ค่าที่ hint-analyst ประเมินเองแม่นกว่านี้เสมอ)
+const MAGNITUDE_DEFAULT_SCORE = { high: 70, mid: 45, low: 20 };
+const impactScore =
+  hint.impact_score != null ? Number(hint.impact_score) : MAGNITUDE_DEFAULT_SCORE[hint.magnitude] ?? 45;
 
 const db = openDb();
 await applySchema(db);
@@ -57,13 +69,14 @@ const j = (v) => (v == null ? null : JSON.stringify(v));
 
 try {
   await db.execute({
-    sql: `INSERT INTO hints (slug, title, dek, direction, magnitude, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO hints (slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(slug) DO UPDATE SET
             title = excluded.title,
             dek = excluded.dek,
             direction = excluded.direction,
             magnitude = excluded.magnitude,
+            impact_score = excluded.impact_score,
             discovered_from = excluded.discovered_from,
             run_date = excluded.run_date,
             stats_json = excluded.stats_json,
@@ -76,6 +89,7 @@ try {
       hint.dek ?? null,
       hint.direction ?? null,
       hint.magnitude ?? null,
+      impactScore,
       hint.discovered_from ?? null,
       hint.run_date ?? new Date().toISOString().slice(0, 10),
       j(hint.stats),

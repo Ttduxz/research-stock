@@ -29,7 +29,27 @@ export interface ResearchRun {
   price_at_run: number | null;
   details_json: string | null; // RunDetails (JSON)
   entry_plan_json: string | null; // EntryPlan (JSON)
+  /** 'full' = pipeline เต็ม | 'update' = reviewer + analyst/theorist | 'review' = reviewer อย่างเดียว */
+  run_type: string | null;
+  /** รอบก่อนหน้าของหุ้นตัวนี้ — ทำให้ไล่สายการเปลี่ยนความเห็นย้อนหลังได้ */
+  prev_run_id: number | null;
+  delta_json: string | null; // RunDelta (JSON)
   created_at: string;
+}
+
+/** สรุปว่ารอบนี้ต่างจากรอบก่อนยังไง — เก็บใน research_runs.delta_json */
+export interface RunDelta {
+  /** same = ยืนยันความเห็นเดิม | shifted = น้ำหนักเปลี่ยนแต่ยังไม่พลิก | escalate = ต้องทบทวนใหญ่ */
+  stance?: "same" | "shifted" | "escalate";
+  review_md?: string;
+  prev_verdict?: string | null;
+  verdict?: string | null;
+  prev_price?: number | null;
+  price_move_pct?: number | null;
+  /** เหตุผลที่ยกธงให้ analyst/theorist ทำใหม่ (มีเมื่อ stance = escalate) */
+  escalate_reason?: string;
+  /** ใครเป็นคนยกธง — เกณฑ์แข็งจากสคริปต์ หรือดุลพินิจของ reviewer */
+  escalated_by?: ("rule" | "reviewer")[];
 }
 
 /** แผนจุดเข้าสะสมแบ่งไม้ — ความเห็นเชิงกลยุทธ์ของ theorie team (เพื่อการศึกษา) */
@@ -88,7 +108,15 @@ export interface FinTable {
 
 export interface ResearchItem {
   id: number;
+  /** รอบที่เจอ item นี้ครั้งแรก (ไม่ใช่ 'รอบที่ item นี้สังกัด' — คลัง item เป็นของ ticker ไม่ใช่ของ run) */
   run_id: number;
+  last_seen_run_id: number | null;
+  first_seen_on: string | null;
+  last_seen_on: string | null;
+  /** active = แสดงปกติ | archived = เก่าและไม่สำคัญพอ | superseded = มีข่าวใหม่มาแทนแล้ว */
+  status: string | null;
+  /** id ของ item ที่มาแทน (เมื่อ status = superseded) */
+  superseded_by: number | null;
   ticker: string;
   category: string;
   title: string;
@@ -138,6 +166,7 @@ export interface Hint {
   dek: string | null;
   direction: string | null; // "positive" | "negative" | "mixed" — hint ไม่ได้แปลว่าความเสี่ยงเสมอไป อาจเป็นโอกาสก็ได้
   magnitude: string | null; // "high" | "mid" | "low" — ขนาดผลกระทบ ไม่ว่าจะบวกหรือลบ
+  impact_score: number | null; // 1-100 — จัดอันดับละเอียดกว่า magnitude ใช้เลือก top-N ตอน magnitude เท่ากันหลายอัน
   discovered_from: string | null; // ticker ที่เจอระหว่าง research คั่นด้วย comma เช่น "NVDA,MSFT"
   run_date: string;
   stats_json: string | null; // { label, value, note? }[]
@@ -165,6 +194,51 @@ export interface StockOverview extends Stock {
   latest_verdict: string | null;
   latest_price: number | null;
   run_count: number;
+  /** วันที่ทบทวนล่าสุด (อาจใหม่กว่า latest_run_date ถ้าทบทวนแล้วยังไม่ครบเงื่อนไขวิเคราะห์ใหม่) */
+  latest_review_date: string | null;
+  latest_review_price: number | null;
+}
+
+/**
+ * รอบทบทวนรายสัปดาห์ของทีม reviewer — ตัดสินความเห็นเดิม ไม่ได้ผลิตความเห็นใหม่
+ * ถึงยกธง escalate ก็ยังไม่แก้ทฤษฎีเอง แต่ส่งต่อให้ analyst/theorist ทำรอบใหม่ (resulting_run_id)
+ */
+export interface Review {
+  id: number;
+  ticker: string;
+  review_date: string;
+  base_run_id: number | null;
+  /** same = ยืนยันเดิม | shifted = น้ำหนักเปลี่ยนแต่ยังไม่พลิก | escalate = ต้องทบทวนใหญ่ */
+  stance: string;
+  review_md: string;
+  price_at_review: number | null;
+  price_move_pct: number | null;
+  escalated_by: string | null; // JSON ["rule","reviewer"]
+  escalate_reason: string | null;
+  /** สถานะของแผนเดิมหลังทบทวน: no-action | watch | plan-live | plan-broken */
+  plan_status: string | null;
+  /** บรรทัดที่ตอบว่า "อ่านจบแล้วต้องทำอะไรไหม" — บังคับให้มีตั้งแต่ตอน ingest */
+  action_md: string | null;
+  resulting_run_id: number | null;
+  created_at: string;
+}
+
+/**
+ * การตัดสินข้อความจากทฤษฎีรอบก่อนด้วยหลักฐานใหม่ — ผลงานของทีม reviewer
+ * claim ต้องเป็นข้อความเดิมแบบคัดลอกตรงตัว ไม่ใช่เรียบเรียงใหม่ (ไม่งั้นคำทำนายจะถูกแก้ให้ตรงผลย้อนหลัง)
+ */
+export interface ThesisCheck {
+  id: number;
+  ticker: string;
+  review_id: number;
+  origin_run_id: number | null;
+  theory_title: string | null;
+  claim_type: string; // assumption | catalyst | risk | invalidation | target
+  claim: string;
+  status: string; // confirmed | weakened | broken | too-early
+  evidence_md: string | null;
+  sources_json: string | null; // [{ title, url, published_at }]
+  created_at: string;
 }
 
 export interface RunBundle {
@@ -181,6 +255,8 @@ interface Snapshot {
   analyses: Analysis[];
   theories: Theory[];
   hints?: Hint[];
+  thesis_checks?: ThesisCheck[];
+  reviews?: Review[];
 }
 
 // ---------- Mode selection ----------
@@ -225,6 +301,9 @@ export async function listStocksWithLatest(): Promise<StockOverview[]> {
     const out = s.stocks.map((stock) => {
       const latest = latestRunOf(s.research_runs, stock.ticker);
       const analysis = latest ? s.analyses.find((a) => a.run_id === latest.id) : null;
+      const reviews = (s.reviews ?? []).filter((r) => r.ticker === stock.ticker);
+      reviews.sort((a, b) => b.review_date.localeCompare(a.review_date) || b.id - a.id);
+      const latestReview = reviews[0] ?? null;
       return {
         ...stock,
         latest_run_id: latest?.id ?? null,
@@ -232,6 +311,8 @@ export async function listStocksWithLatest(): Promise<StockOverview[]> {
         latest_verdict: analysis?.verdict ?? null,
         latest_price: latest?.price_at_run ?? null,
         run_count: s.research_runs.filter((r) => r.ticker === stock.ticker).length,
+        latest_review_date: latestReview?.review_date ?? null,
+        latest_review_price: latestReview?.price_at_review ?? null,
       };
     });
     out.sort((a, b) =>
@@ -247,12 +328,16 @@ export async function listStocksWithLatest(): Promise<StockOverview[]> {
            r.run_date AS latest_run_date,
            r.price_at_run AS latest_price,
            a.verdict AS latest_verdict,
-           (SELECT COUNT(*) FROM research_runs WHERE ticker = s.ticker) AS run_count
+           (SELECT COUNT(*) FROM research_runs WHERE ticker = s.ticker) AS run_count,
+           rv.review_date AS latest_review_date,
+           rv.price_at_review AS latest_review_price
     FROM stocks s
     LEFT JOIN research_runs r
       ON r.id = (SELECT id FROM research_runs WHERE ticker = s.ticker ORDER BY run_date DESC, id DESC LIMIT 1)
     LEFT JOIN analyses a
       ON a.run_id = r.id
+    LEFT JOIN reviews rv
+      ON rv.id = (SELECT id FROM reviews WHERE ticker = s.ticker ORDER BY review_date DESC, id DESC LIMIT 1)
     ORDER BY r.run_date DESC NULLS LAST, s.ticker ASC
   `);
   return rs.rows as unknown as StockOverview[];
@@ -331,6 +416,21 @@ export async function listHints(): Promise<Hint[]> {
     "SELECT * FROM hints ORDER BY run_date DESC, id DESC"
   );
   return rs.rows as unknown as Hint[];
+}
+
+/** ticker → sector ของหุ้นทุกตัว (ใช้อนุมาน segment ของ hint ในหน้า /insights — ดู lib/segments.ts) */
+export async function listStockSectors(): Promise<Record<string, string | null>> {
+  const out: Record<string, string | null> = {};
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    for (const stock of s?.stocks ?? []) out[stock.ticker] = stock.sector;
+    return out;
+  }
+  const rs = await getDb().execute("SELECT ticker, sector FROM stocks");
+  for (const row of rs.rows as unknown as { ticker: string; sector: string | null }[]) {
+    out[row.ticker] = row.sector;
+  }
+  return out;
 }
 
 export async function getHint(slug: string): Promise<Hint | null> {
@@ -418,9 +518,72 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
       price_at_run: r.price_at_run,
       details_json: r.details_json,
       entry_plan_json: r.entry_plan_json,
+      run_type: r.run_type,
+      prev_run_id: r.prev_run_id,
+      delta_json: r.delta_json,
       created_at: r.created_at,
     },
     analysis: analyses.find((a) => a.run_id === r.id) ?? null,
     theories: theories.filter((t) => t.run_id === r.id),
   }));
+}
+
+/**
+ * คลังข่าว/ข้อมูลของหุ้นตัวหนึ่งที่ยังใช้งานอยู่ — ข้ามตัวที่ถูก archive หรือถูกข่าวใหม่แทนที่แล้ว
+ * ต่างจาก getRunBundle().items ตรงที่ไม่ผูกกับรอบใดรอบหนึ่ง (รอบติดตามรายสัปดาห์เพิ่มของใหม่เข้าคลังเดียวกัน)
+ */
+export async function listActiveItems(ticker: string): Promise<ResearchItem[]> {
+  const t = ticker.toUpperCase();
+  const active = (i: ResearchItem) => i.ticker === t && (i.status ?? "active") === "active";
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s) return [];
+    return s.research_items
+      .filter(active)
+      .sort(
+        (a, b) =>
+          (b.published_at ?? "").localeCompare(a.published_at ?? "") ||
+          b.importance - a.importance ||
+          b.id - a.id
+      );
+  }
+  const rs = await getDb().execute({
+    sql: `SELECT * FROM research_items
+          WHERE ticker = ? AND COALESCE(status, 'active') = 'active'
+          ORDER BY published_at DESC NULLS LAST, importance DESC, id DESC`,
+    args: [t],
+  });
+  return rs.rows as unknown as ResearchItem[];
+}
+
+/** รอบทบทวนรายสัปดาห์ของหุ้นตัวหนึ่ง ใหม่สุดก่อน — คู่กับ listRuns() เวลาต่อ timeline */
+export async function listReviews(ticker: string): Promise<Review[]> {
+  const t = ticker.toUpperCase();
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s?.reviews) return [];
+    return s.reviews
+      .filter((r) => r.ticker === t)
+      .sort((a, b) => b.review_date.localeCompare(a.review_date) || b.id - a.id);
+  }
+  const rs = await getDb().execute({
+    sql: "SELECT * FROM reviews WHERE ticker = ? ORDER BY review_date DESC, id DESC",
+    args: [t],
+  });
+  return rs.rows as unknown as Review[];
+}
+
+/** ผลตัดสินทฤษฎีทั้งหมดของหุ้นตัวหนึ่ง เรียงรอบใหม่ก่อน (ใช้ทำ timeline + track record) */
+export async function listThesisChecks(ticker: string): Promise<ThesisCheck[]> {
+  const t = ticker.toUpperCase();
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s?.thesis_checks) return [];
+    return s.thesis_checks.filter((c) => c.ticker === t).sort((a, b) => b.review_id - a.review_id || a.id - b.id);
+  }
+  const rs = await getDb().execute({
+    sql: "SELECT * FROM thesis_checks WHERE ticker = ? ORDER BY review_id DESC, id ASC",
+    args: [t],
+  });
+  return rs.rows as unknown as ThesisCheck[];
 }

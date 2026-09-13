@@ -2,8 +2,18 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { listLatestSnapshots } from "@/lib/db";
 import { getQuotes } from "@/lib/quote";
-import { rankByPrice, STALE_MOVE_THRESHOLD, WEIGHTS, type PriceRank } from "@/lib/ranking";
+import {
+  rankByPrice,
+  STALE_MOVE_THRESHOLD,
+  WEIGHTS,
+  entryLabel,
+  entryTone,
+  type PriceRank,
+  type Technical,
+  type EntryZone,
+} from "@/lib/ranking";
 import VerdictBadge from "@/components/VerdictBadge";
+import ScenarioLadder from "@/components/ScenarioLadder";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +28,36 @@ const RISK_LABEL: Record<string, string> = {
   medium: "เสี่ยงปานกลาง",
   high: "เสี่ยงสูง",
 };
+// เวอร์ชันย่อสำหรับตารางอันดับที่เหลือ — หัวคอลัมน์บอกว่า "ความเสี่ยง" อยู่แล้ว ไม่ต้องพูดซ้ำคำว่า "เสี่ยง" ทุกแถว
+const RISK_LABEL_SHORT: Record<string, string> = { low: "ต่ำ", medium: "กลาง", high: "สูง" };
 const RISK_CLASS: Record<string, string> = {
   low: "risk-low",
   medium: "risk-mid",
   high: "risk-high",
 };
 
-const ENTRY_LABEL: Record<string, string> = {
-  below: "ต่ำกว่าโซนไม้แรก",
-  in: "อยู่ในโซนไม้แรก",
-  above: "ยังสูงกว่าโซนไม้แรก",
+/** บรรทัดขยาย stat-n ของการ์ด — ยาวกว่า entryLabel() ของตาราง เพราะการ์ดมีที่พออธิบาย
+ *  ว่าราคานี้ theorist ยอมลงเงินไปแล้วกี่ % ของแผน (ไม่ใช่แค่ "อยู่ในโซนไหม") */
+function entryDetail(entry: EntryZone | null): string {
+  if (!entry) return "ไม่มี entry plan";
+  const pct = `${Math.round(entry.cumShare * 100)}%`;
+  const note = entry.allocKnown ? "" : " (แผนเก่าไม่ระบุสัดส่วน — สมมุติแบ่งเท่ากัน)";
+  switch (entry.state) {
+    case "above":
+      return `ยังเหนือไม้ ${entry.tranche}${note}`;
+    case "in":
+      return `ถึงไม้ ${entry.tranche}/${entry.trancheCount} · theorist ลง ${pct} ของแผน${note}`;
+    case "between":
+      return `ผ่านไม้ ${entry.tranche} แล้ว · ลงไป ${pct} รอไม้ ${entry.tranche + 1} (${entry.nextRange})${note}`;
+    case "below":
+      return `หลุดทุกไม้ — ถูกกว่าแผนสุดขั้ว เช็คว่า thesis ยังอยู่ไหม${note}`;
+  }
+}
+
+const entryValue = (entry: EntryZone | null): string => {
+  if (!entry) return "–";
+  if (entry.state === "between") return `ไม้ ${entry.tranche} ✓ → รอไม้ ${entry.tranche + 1}`;
+  return `ไม้ ${entry.tranche} · ${entry.range}`;
 };
 
 const num = (n: number) =>
@@ -35,6 +65,58 @@ const num = (n: number) =>
 const money = (n: number, cur: string) => `${num(n)} ${cur}`;
 const pct = (n: number, digits = 1) => `${n >= 0 ? "+" : ""}${(n * 100).toFixed(digits)}%`;
 const toneClass = (n: number) => (n > 0 ? "up" : n < 0 ? "dn" : "");
+
+const TREND_TEXT: Record<NonNullable<Technical["trend"]>, string> = {
+  strong_up: "ขาขึ้นแข็งแรง",
+  up: "ย่อในขาขึ้น",
+  mixed: "เทรนด์ไม่ชัด",
+  down: "ขาลง",
+};
+const ZONE_TEXT: Record<NonNullable<Technical["zone"]>, string> = {
+  discount: "ล่างกรอบ",
+  equilibrium: "กลางกรอบ",
+  premium: "บนกรอบ",
+};
+
+/** ป้ายเดียวรวมเทรนด์ (EMA 50/100/200) + ตำแหน่งในกรอบราคา 6 เดือน — แทนตัวเลขดิบ
+ *  ให้เข้าใจ "จังหวะเก็บของ" ได้ทันทีโดยไม่ต้องอ่านค่า % เอง */
+function techLabel(t: Technical): string {
+  if (t.trend == null && t.zone == null) return "ไม่มีข้อมูลราคาย้อนหลัง";
+  if (t.zone == null) return "ประวัติราคาไม่พอ";
+  if (t.trend == null) return `${ZONE_TEXT[t.zone]} · เทรนด์ยังดูไม่ได้`;
+  return `${TREND_TEXT[t.trend]} · ${ZONE_TEXT[t.zone]}`;
+}
+
+/** สีตามกรอบราคาอย่างเดียว (ล่างกรอบ = โอกาสเก็บของ, บนกรอบ = ยืดแล้ว) — ไม่เอาสีเทรนด์มาซ้อนกันสองสัญญาณ */
+const techTone = (t: Technical) => (t.zone === "discount" ? "up" : t.zone === "premium" ? "dn" : "");
+
+const TREND_TEXT_SHORT: Record<NonNullable<Technical["trend"]>, string> = {
+  strong_up: "ขาขึ้นแรง",
+  up: "ย่อขึ้น",
+  mixed: "ไม่ชัด",
+  down: "ขาลง",
+};
+const ZONE_TEXT_SHORT: Record<NonNullable<Technical["zone"]>, string> = {
+  discount: "ล่าง",
+  equilibrium: "กลาง",
+  premium: "บน",
+};
+
+/** เวอร์ชันย่อของ techLabel สำหรับตารางอันดับที่เหลือโดยเฉพาะ — ตารางกว้างจำกัด ห้ามล้นจนต้อง scroll */
+function techLabelShort(t: Technical): string {
+  if (t.trend == null && t.zone == null) return "–";
+  if (t.zone == null) return "ไม่พอ";
+  if (t.trend == null) return `${ZONE_TEXT_SHORT[t.zone]}·–`;
+  return `${TREND_TEXT_SHORT[t.trend]}·${ZONE_TEXT_SHORT[t.zone]}`;
+}
+
+/** บรรทัดขยายสำหรับการ์ด (มีที่พอ) — ตารางไม่ใช้ตัวนี้ */
+function techDetail(t: Technical): string {
+  if (t.rangeLow == null || t.rangeHigh == null || t.distFromMidPct == null) return "";
+  const magnitude = `${Math.abs(t.distFromMidPct * 100).toFixed(0)}%`;
+  const mid = t.distFromMidPct >= 0 ? `สูงกว่าจุดกลางกรอบ ${magnitude}` : `ต่ำกว่าจุดกลางกรอบ ${magnitude}`;
+  return `${mid} · กรอบ ${num(t.rangeLow)}–${num(t.rangeHigh)}`;
+}
 
 /** เวลาราคาสด แสดงเป็นเวลาไทย */
 const asOfText = (iso: string | null) =>
@@ -48,36 +130,22 @@ const asOfText = (iso: string | null) =>
       })
     : null;
 
-/** แถบระยะทางจากราคาอ้างอิงไป bear / base / bull */
+/** แถบระยะทางจากราคาอ้างอิงไป bear / base / bull — ใช้ ScenarioLadder ตัวเดียวกับหน้าหุ้น
+ *  (เดิมมีแค่ tick ของ base+ราคาปัจจุบันบนเส้น ส่วน bear/bull มีแต่ตัวเลขในตำนานด้านล่าง
+ *   ทำให้แยกไม่ออกว่า bear/bull อยู่ตรงไหนบนเส้นจริง — ตอนนี้มีจุดของทุกเป้าครบ) */
 function RangeBar({ r }: { r: PriceRank }) {
-  const lo = Math.min(r.bearTarget, r.price);
-  const hi = Math.max(r.bullTarget, r.price);
-  const at = (v: number) => ((v - lo) / (hi - lo || 1)) * 100;
   return (
     <div className="rangebar">
-      <div className="rb-track">
-        <div
-          className="rb-span"
-          style={{ left: `${at(r.baseTarget)}%`, right: `${100 - at(r.bullTarget)}%` }}
-        />
-        <div className="rb-mark price" style={{ left: `${at(r.price)}%` }} />
-        <div className="rb-mark base" style={{ left: `${at(r.baseTarget)}%` }} />
-      </div>
-      <div className="rb-legend">
-        <span className="dn">
-          bear {num(r.bearTarget)} ({pct(r.bearPct, 0)})
-        </span>
-        <span>
-          base {num(r.baseTarget)} ({pct(r.basePct, 0)})
-        </span>
-        <span className="up">
-          bull {num(r.bullTarget)} ({pct(r.bullPct, 0)})
-        </span>
-      </div>
+      <ScenarioLadder
+        currentPrice={r.price}
+        currency={r.currency}
+        bear={{ target: r.bearTarget }}
+        base={{ target: r.baseTarget }}
+        bull={{ target: r.bullTarget }}
+        showTrack={false}
+      />
       <div className="rb-note">
-        <span className="rb-key price" /> {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วัน run"} {num(r.price)}
-        <span className="rb-key base" /> base case
-        <span className="rb-key span" /> ช่วง base → bull
+        {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วัน run"} {num(r.price)} · เป้าเฉลี่ยถ่วงน้ำหนักจาก {r.theoryCount} ทฤษฎี
       </div>
     </div>
   );
@@ -158,10 +226,15 @@ function RankCard({ r, rank }: { r: PriceRank; rank: number }) {
           <span className="stat-n">จากทีม analyze (เต็ม 10)</span>
         </div>
         <div className="stat">
-          <span className="stat-k">โซนเข้าไม้แรก</span>
-          <span className="stat-v">{r.entry ? r.entry.range : "–"}</span>
-          <span className={`stat-n ${r.entry?.state === "above" ? "dn" : "up"}`}>
-            {r.entry ? ENTRY_LABEL[r.entry.state] : "ไม่มี entry plan"}
+          <span className="stat-k">โซนเข้า · แผน {r.entry?.trancheCount ?? 0} ไม้</span>
+          <span className="stat-v">{entryValue(r.entry)}</span>
+          <span className={`stat-n ${entryTone(r.entry)}`}>{entryDetail(r.entry)}</span>
+        </div>
+        <div className="stat">
+          <span className="stat-k">จังหวะเก็บของ · กรอบ 6 เดือน</span>
+          <span className={`stat-v ${techTone(r.tech)}`}>{techLabel(r.tech)}</span>
+          <span className="stat-n">
+            {techDetail(r.tech) || (r.tech.trend == null ? "EMA200 ยังคำนวณไม่ได้ (ประวัติ < 200 วัน)" : "")}
           </span>
         </div>
       </div>
@@ -170,7 +243,7 @@ function RankCard({ r, rank }: { r: PriceRank; rank: number }) {
 
       {r.topTheory && (
         <p className="rank-theory">
-          ทฤษฎีหลักของ theorie team: <b>{r.topTheory}</b> —{" "}
+          ทฤษฎีหลัก: <b>{r.topTheory}</b> —{" "}
           <Link href={`/stock/${r.ticker}`}>อ่านรายงานเต็ม →</Link>
         </p>
       )}
@@ -197,8 +270,8 @@ export default async function BestPricePage() {
     <>
       <h1>5 หุ้นที่ราคาน่าสนใจที่สุดตอนนี้</h1>
       <p className="subtitle">
-        เทียบ<b>ราคาตลาดล่าสุด</b>กับเป้าหมาย bull/base/bear ที่ theorie team ตั้งไว้
-        ผสมคะแนนพื้นฐาน ความเสี่ยง และโซนเข้าไม้แรกจาก entry plan — อันดับคำนวณใหม่ทุกครั้งที่เปิดหน้า
+        เทียบ<b>ราคาตลาดล่าสุด</b>กับเป้าหมายดีสุด/กรณีฐาน/แย่สุดที่ตั้งไว้ในรายงาน
+        ผสมคะแนนพื้นฐาน ความเสี่ยง และบันไดไม้จาก entry plan — อันดับคำนวณใหม่ทุกครั้งที่เปิดหน้า
       </p>
 
       {ranked.length === 0 ? (
@@ -216,6 +289,12 @@ export default async function BestPricePage() {
             <br />
             <b>สดแค่ราคา</b> — เป้า bull/base/bear, คะแนนพื้นฐาน/momentum, risk_level และ verdict
             ยังเป็นค่า ณ วันที่รัน pipeline เปลี่ยนได้ต่อเมื่อรัน <code>/research-stock</code> ใหม่
+            <br />
+            <b>จังหวะเก็บของ</b> คำนวณจาก EMA 50/100/200 และกรอบสูง-ต่ำ 6 เดือน จากราคาปิดรายวันของ
+            Yahoo ตัวที่ประวัติไม่พอได้คะแนนกลางๆ — <b>บันไดไม้</b> ตอบว่า &ldquo;ราคาไหนคุ้มตามแผนของหุ้นตัวนี้&rdquo;
+            (คิดตามสัดส่วนเงินที่ theorist วางแผนลงจริง ไม้แรกที่แบ่งเงินไว้น้อยจึงไม่นับว่าราคาคุ้มเต็มที่)
+            ส่วน <b>จังหวะเก็บของ</b> ตอบว่า &ldquo;ตอนนี้ราคาอยู่ส่วนไหนของการแกว่ง 6 เดือน&rdquo; ตรงกันสองอย่าง
+            (ถึงไม้ที่ลงเงินเยอะ + ล่างกรอบ) = จังหวะชัด ขัดกันให้ยึดแผนไม้เป็นหลัก
           </div>
 
           {staleCount > 0 && (
@@ -237,26 +316,38 @@ export default async function BestPricePage() {
                 อันดับที่เหลือ <span className="sector-count">({rest.length} ตัว)</span>
               </h2>
               <div className="tbl-scroll">
-                <table className="fin-tbl">
+                <table className="fin-tbl rank-tbl">
+                  {/* กำหนด % ตายตัวเอง — ปล่อยให้ table-layout:fixed หารเท่ากันจะบีบ 2 คอลัมน์ท้าย
+                      (เนื้อหายาวสุด) จนตัดคำภาษาไทยแหว่งเกินจำเป็น */}
+                  <colgroup>
+                    <col style={{ width: "14%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "10%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "8%" }} />
+                    <col style={{ width: "7%" }} />
+                    <col style={{ width: "17%" }} />
+                    <col style={{ width: "22%" }} />
+                  </colgroup>
                   <thead>
                     <tr>
-                      <th>#</th>
                       <th>หุ้น</th>
                       <th>คะแนน</th>
-                      <th>ราคาตลาด</th>
-                      <th>จากวัน run</th>
-                      <th>เป้าถ่วงน้ำหนัก</th>
+                      <th>ราคา</th>
+                      <th>เป้า</th>
                       <th>R/R</th>
                       <th>พื้นฐาน</th>
-                      <th>ความเสี่ยง</th>
-                      <th>โซนไม้แรก</th>
+                      <th>เสี่ยง</th>
+                      <th>ไม้/แผน</th>
+                      <th>จังหวะ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {rest.map((r, i) => (
                       <tr key={r.ticker}>
-                        <th>{i + 6}</th>
                         <td style={{ textAlign: "left" }}>
+                          <span className="rank-tbl-no">{i + 6}</span>
                           <Link href={`/stock/${r.ticker}`}>{r.ticker}</Link>
                           {r.stale && (
                             <span className="dn" title="ราคาขยับจากวัน run มาก — บทวิเคราะห์เริ่มเก่า">
@@ -268,18 +359,20 @@ export default async function BestPricePage() {
                         <td className="col-now">{r.score.toFixed(1)}</td>
                         <td>
                           {num(r.price)}
-                          {r.priceSource === "run" && <span className="stat-n"> (วัน run)</span>}
+                          <br />
+                          <span
+                            className={`stat-n ${r.moveSinceRunPct == null ? "" : toneClass(r.moveSinceRunPct)}`}
+                            title="เทียบราคา ณ วัน run"
+                          >
+                            {r.moveSinceRunPct == null ? "(วัน run)" : pct(r.moveSinceRunPct)}
+                          </span>
                         </td>
-                        <td className={r.moveSinceRunPct == null ? "" : toneClass(r.moveSinceRunPct)}>
-                          {r.moveSinceRunPct == null ? "–" : pct(r.moveSinceRunPct)}
-                        </td>
-                        <td className={toneClass(r.upsidePct)}>{pct(r.upsidePct)}</td>
-                        <td>{r.rewardRisk.toFixed(2)}x</td>
+                        <td className={toneClass(r.upsidePct)}>{pct(r.upsidePct, 0)}</td>
+                        <td>{r.rewardRisk.toFixed(1)}x</td>
                         <td>{r.fundamentals ?? "–"}/10</td>
-                        <td>{r.riskLevel ? RISK_LABEL[r.riskLevel] ?? r.riskLevel : "–"}</td>
-                        <td className={r.entry?.state === "above" ? "dn" : "up"}>
-                          {r.entry ? ENTRY_LABEL[r.entry.state] : "–"}
-                        </td>
+                        <td>{r.riskLevel ? RISK_LABEL_SHORT[r.riskLevel] ?? r.riskLevel : "–"}</td>
+                        <td className={entryTone(r.entry)}>{entryLabel(r.entry)}</td>
+                        <td className={techTone(r.tech)}>{techLabelShort(r.tech)}</td>
                       </tr>
                     ))}
                   </tbody>

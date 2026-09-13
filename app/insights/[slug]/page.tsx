@@ -44,7 +44,7 @@ export default async function InsightPage({
 
       <div className="stock-head">
         <h1>{hint.title}</h1>
-        <HintBadge direction={hint.direction} magnitude={hint.magnitude} />
+        <HintBadge direction={hint.direction} magnitude={hint.magnitude} impactScore={hint.impact_score} />
       </div>
       <p className="subtitle">
         {hint.dek}

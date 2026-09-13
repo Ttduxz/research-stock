@@ -62,10 +62,13 @@ export default function FinChart({
             </text>
           </g>
 
+          {/* className + --d บนแท่ง/ป้าย ให้ CSS ทยอย grow ทีละแท่งตอนกราฟเลื่อนเข้า viewport */}
           <g fill="var(--accent)" opacity="0.35">
             {revenue.map((v, i) => (
               <rect
                 key={i}
+                className="chart-bar"
+                style={{ "--d": `${i * 70}ms` } as React.CSSProperties}
                 x={cx(i) - barW / 2}
                 y={revY(v)}
                 width={barW}
@@ -76,7 +79,13 @@ export default function FinChart({
           </g>
           <g fontSize="12" fontWeight="600" fill="var(--text)" textAnchor="middle">
             {revenue.map((v, i) => (
-              <text key={i} x={cx(i)} y={revY(v) - 8}>
+              <text
+                key={i}
+                className="chart-val"
+                style={{ "--d": `${180 + i * 70}ms` } as React.CSSProperties}
+                x={cx(i)}
+                y={revY(v) - 8}
+              >
                 {fmt(v)}
               </text>
             ))}
@@ -84,7 +93,9 @@ export default function FinChart({
 
           {margin_pct && margin_pct.length === n && (
             <>
+              {/* chart-line: MotionLayer วัดความยาวเส้นแล้วสั่งให้ค่อยๆ ลากตัวเองด้วย stroke-dashoffset */}
               <polyline
+                className="chart-line"
                 points={margin_pct.map((v, i) => `${cx(i)},${mgY(v)}`).join(" ")}
                 fill="none"
                 stroke="var(--yellow)"
@@ -94,12 +105,25 @@ export default function FinChart({
               />
               <g fill="var(--bg-card)" stroke="var(--yellow)" strokeWidth="2.5">
                 {margin_pct.map((v, i) => (
-                  <circle key={i} cx={cx(i)} cy={mgY(v)} r="4" />
+                  <circle
+                    key={i}
+                    className="chart-dot"
+                    style={{ "--d": `${260 + i * 90}ms` } as React.CSSProperties}
+                    cx={cx(i)}
+                    cy={mgY(v)}
+                    r="4"
+                  />
                 ))}
               </g>
               <g fontSize="11.5" fontWeight="600" fill="var(--yellow)" textAnchor="middle">
                 {margin_pct.map((v, i) => (
-                  <text key={i} x={cx(i)} y={mgY(v) + 20}>
+                  <text
+                    key={i}
+                    className="chart-dot"
+                    style={{ "--d": `${320 + i * 90}ms` } as React.CSSProperties}
+                    x={cx(i)}
+                    y={mgY(v) + 20}
+                  >
                     {v}%
                   </text>
                 ))}
