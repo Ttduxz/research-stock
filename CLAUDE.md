@@ -21,6 +21,8 @@
 
 ผลคือถ้าสั่งวิเคราะห์ N ticker จะได้ N รายงานหุ้นปกติ **บวก** X รายงาน hint (X มักเป็น 0 — ตั้งเกณฑ์ไว้สูงตั้งใจ ไม่ใช่ flag ทุกข่าวที่เจอ)
 
+**hint มีอายุขัย** — `/review-hints` (agent `hint-reviewer`, opus) ทบทวน hint ที่ไม่ได้ตรวจเกิน 14 วันด้วยหลักฐานที่มีลิงก์ แล้วตัดสินเป็น `active` (ยังมีผล) / `played-out` (เกิดขึ้นครบแล้ว) / `invalidated` (ถูกหักล้างแล้ว) ผ่าน `ingest-hint-review.mjs` (เปลี่ยนสถานะต้องมี url) — ขั้น 2.6 ใช้ `list-hints.mjs --active` เท่านั้น **hint ที่ปิดแล้วห้ามถูกเอาไปปรับหุ้นตัวอื่น** (รายงานเดิมเก็บไว้ไม่ลบ หน้าเว็บติดป้ายสถานะ) หุ้นที่เคยอ้างถึง hint ที่เพิ่งถูกปิดดูได้ด้วย `hint-exposure.mjs <slug>` · `/review-week` ทำ `/review-hints --max=5` ต่อท้ายถ้าโควตาค้นเว็บเหลือ
+
 นอกจากสร้าง hint ใหม่ `/research-stock` ยังเช็คย้อนกลับด้วยว่าหุ้นที่กำลัง research ตัวนี้**เกี่ยวข้อง/อาจได้รับผลกระทบ**จาก hint ที่มีอยู่แล้วหรือไม่ (ขั้น 2.6 — ไม่ว่า hint นั้นจะเจอวันนี้หรือก่อนหน้า) ถ้าใช่ ต้อง **factor เข้ากับการวิเคราะห์จริงตามทิศทางของ hint ไม่ใช่แค่แปะหมายเหตุ**: hint ลบ → analyst ปรับ `risk_level`/verdict ลง + เพิ่มหัวข้อ "จาก [hint] ต้องระวังอะไร", theorist ใส่ใน `risks`/bear scenario + ลด allocation ไม้ลึก; hint บวก → analyst ปรับคะแนน/verdict ขึ้น + เพิ่มหัวข้อ "จาก [hint] เป็นโอกาสอะไร", theorist ใส่ใน `catalysts`/bull scenario + พิจารณาเพิ่ม allocation ไม้ตื้น — ทุกจุดที่อ้างถึงต้องมีลิงก์ `/insights/<slug>`
 
 ## รอบติดตามรายสัปดาห์ (review)
@@ -45,7 +47,7 @@
 
 ## กติกาสำคัญ
 
-- **โมเดลทีม agent (ห้าม override):** researcher=sonnet, analyst+theorist=opus, reviewer=opus, hint-analyst=fable (กำหนดใน `.claude/agents/*.md` แล้ว) — hint-analyst รันเฉพาะตอนมี hint ที่ผ่านเกณฑ์จริงเท่านั้น ไม่ใช่ทุก ticker; นอกเหนือจากนี้ใช้ Fable เฉพาะเมื่อ user สั่ง "วิเคราะห์แบบลึกสุด" เป็นรายตัว; รัน batch หลาย ticker ให้ทำใน session ใหม่ และลดการโพสต์สถานะระหว่างรอ agent
+- **โมเดลทีม agent (ห้าม override):** researcher=sonnet, analyst+theorist=opus, reviewer=opus, hint-reviewer=opus, hint-analyst=fable (กำหนดใน `.claude/agents/*.md` แล้ว) — hint-analyst รันเฉพาะตอนมี hint ที่ผ่านเกณฑ์จริงเท่านั้น ไม่ใช่ทุก ticker; นอกเหนือจากนี้ใช้ Fable เฉพาะเมื่อ user สั่ง "วิเคราะห์แบบลึกสุด" เป็นรายตัว; รัน batch หลาย ticker ให้ทำใน session ใหม่ และลดการโพสต์สถานะระหว่างรอ agent
 
 - ข้อมูลหุ้นทุกชิ้นต้องมาจากการค้นเว็บจริง **ห้ามแต่งตัวเลข/ข่าว** — ticker `DEMO` เท่านั้นที่เป็นข้อมูลสมมุติ
 - ตอบ user และเขียนเนื้อหาลง DB เป็นภาษาไทย (ศัพท์เทคนิค/ชื่อเฉพาะเป็นอังกฤษได้)
@@ -75,6 +77,7 @@ npm run review:summary   # สรุปผลรอบทบทวนของ�
 - หน้า `/admin/logs` เห็นเฉพาะอีเมลใน env `ADMIN_EMAILS` (คนอื่นได้ 404)
 - อีเมลใน env `LOG_EXCLUDE_EMAILS` (คั่นด้วย comma) ไม่ถูกบันทึก log เลย — ใช้กันเจ้าของระบบปน log ผู้ใช้จริง
 - `access_logs` **ห้ามใส่ใน `export-db.mjs`** — กันอีเมลผู้ใช้หลุดไปกับ `data/export.json` ที่ commit
+- คำขอให้วิเคราะห์หุ้น (ฟอร์มท้ายหน้ารวมหุ้น + ผลค้นหาที่ไม่เจอ): ตาราง `stock_requests` (email, ticker, note) ผูกอีเมลเหมือนกัน — **ไม่อยู่ใน `export-db.mjs` ไม่ผ่าน `lib/cached.ts`**; หน้า `/admin/requests` แสดงแค่จำนวนคนขอ ไม่แสดงอีเมล; ดูคิวใน Claude Code ด้วย `node scripts/list-requests.mjs` แล้วเลือกรัน `/research-stock` เอง (ไม่รันอัตโนมัติ)
 - **ไม่เก็บ IP ของผู้ใช้** (privacy) — คอลัมน์ `access_logs.ip` ถูกลบทิ้งพร้อมข้อมูลเก่าแล้ว (migration ใน `schema.mjs`) อย่าเพิ่มกลับ; log เก็บแค่อีเมล / เหตุการณ์ / หน้า / user-agent
 - หุ้นที่ฉันติดตาม (`/watchlist`): ตาราง `watchlist` (email, ticker) ผูกกับอีเมลเหมือนกัน — **ห้ามใส่ใน `export-db.mjs` และห้ามห่อด้วย `lib/cached.ts`** (ต่างกันรายคน + ต้องเห็นผลทันทีหลังกด ☆) โค้ดอยู่ `lib/watchlist.ts` + server action `app/watchlist/actions.ts` ที่เอาอีเมลจาก session เท่านั้น
 - env ที่ต้องมี (local + Vercel): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`

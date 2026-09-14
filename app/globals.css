@@ -2041,3 +2041,44 @@ body::after {
    → ให้แถวหัวถือระยะด้านล่างเอง และบรรทัดหมายเหตุราคาที่ตามมาไม่ต้องดึงขึ้นอีก */
 .ticker-head { margin-bottom: 10px; }
 .ticker-head + .price-note { margin-top: 0; }
+
+/* ============================================================
+   สถานะ insight หลังรอบทบทวน (hint-reviewer) — การ์ด /insights + หน้ารายงาน
+   ============================================================ */
+.hint-badges { display: inline-flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.badge.hint-status::before { display: none; }
+.badge.hint-status.st-played-out { color: var(--text-dim); border-color: var(--border-strong); background: transparent; }
+.badge.hint-status.st-invalidated { color: var(--red); border-color: rgba(240, 104, 94, 0.4); background: var(--red-wash); }
+/* เรื่องที่ปิดแล้วยังเปิดอ่านย้อนหลังได้ แต่ต้องดูออกทันทีว่าไม่ใช่ประเด็นที่ยังมีผล */
+.hint-card.inactive { opacity: 0.62; }
+.hint-card.inactive:hover { opacity: 1; }
+
+.hint-checked { margin: -18px 0 22px; font-size: 12.5px; color: var(--text-faint); font-family: var(--font-data); line-height: 1.7; }
+.hint-status-note { margin: 0 0 22px; padding: 14px 18px; border-radius: var(--radius); background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--border-strong); }
+.hint-status-note.st-invalidated { border-left-color: var(--red); }
+.hint-status-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.hint-status-date { font-size: 12.5px; color: var(--text-faint); font-family: var(--font-data); }
+.hint-status-note p { margin: 10px 0 0; line-height: 1.75; }
+.hint-status-src { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.hint-status-foot { font-size: 12.5px; color: var(--text-faint); }
+
+/* ============================================================
+   ขอให้วิเคราะห์หุ้น (components/RequestStockForm.tsx) + หน้า /admin/requests
+   ============================================================ */
+.req-section { margin-top: 56px; }
+.req-form { margin-top: 8px; }
+.req-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.req-form input { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font: inherit; font-size: 14px; }
+.req-form input:focus { outline: none; border-color: var(--accent); }
+.req-form input[name="ticker"] { width: 160px; font-family: var(--font-data); text-transform: uppercase; }
+.req-form input[name="note"] { flex: 1; min-width: 220px; }
+.req-form button { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 8px; padding: 8px 16px; color: var(--accent); font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.req-form button:hover { background: var(--accent); color: var(--bg); }
+.req-form button:disabled { opacity: 0.6; cursor: wait; }
+.req-msg { margin: 10px 0 0; font-size: 13.5px; }
+.req-msg.ok { color: var(--green); }
+.req-msg.err { color: var(--red); }
+.empty-state .req-form { margin-top: 18px; }
+.empty-state .req-row { justify-content: center; }
+.req-ticker { font-family: var(--font-data); font-weight: 600; }
+.req-notes { max-width: 420px; white-space: normal; line-height: 1.6; }

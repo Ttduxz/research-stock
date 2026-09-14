@@ -4,6 +4,8 @@ import { auth } from "@/auth";
 import { listWatchTickers } from "@/lib/watchlist";
 import StockBrowser from "@/components/StockBrowser";
 import HintCard from "@/components/HintCard";
+import RequestStockForm from "@/components/RequestStockForm";
+import { isActiveHint } from "@/lib/hint-status";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +46,9 @@ export default async function HomePage() {
     email ? listWatchTickers(email) : Promise.resolve([] as string[]),
   ]);
   // หน้าแรกโชว์แค่ 3 อันดับที่ impact สูงสุด (ไม่ใช่ 3 อันล่าสุด) — เรียงตาม impact_score แล้วค่อย tie-break ด้วยความใหม่
-  const topHints = [...hints]
+  // เรื่องที่ทบทวนแล้วว่าจบ/ถูกหักล้างไม่ขึ้นหน้าแรก (ยังเปิดดูได้ที่ /insights)
+  const topHints = hints
+    .filter((h) => isActiveHint(h.status))
     .sort((a, b) => (b.impact_score ?? 0) - (a.impact_score ?? 0) || b.run_date.localeCompare(a.run_date))
     .slice(0, 3);
 
@@ -96,6 +100,14 @@ export default async function HomePage() {
       ) : (
         <StockBrowser sections={sections} watched={watched} />
       )}
+
+      <section className="req-section">
+        <h2 className="sector-heading">ไม่เจอหุ้นที่สนใจ?</h2>
+        <p className="subtitle">
+          ส่ง ticker มาได้ ทีมจะเลือกวิเคราะห์ตามจำนวนคนที่ขอ — ไม่รับประกันว่าจะทำทุกตัว และใช้เวลาเป็นวันไม่ใช่ทันที
+        </p>
+        <RequestStockForm />
+      </section>
     </>
   );
 }

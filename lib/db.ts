@@ -173,6 +173,12 @@ export interface Hint {
   content_md: string;
   opinion_md: string | null; // ความเห็นส่วนตัวปิดท้าย (ถ้ามี)
   sources_json: string | null; // { group, title, url }[]
+  /** active = ยังมีผล | played-out = เกิดขึ้นครบแล้ว | invalidated = ถูกหักล้างแล้ว (ตัดสินโดยทีม hint-reviewer) */
+  status: string | null;
+  /** เหตุผลของสถานะล่าสุด ภาษาคน */
+  status_md: string | null;
+  status_sources_json: string | null; // { title, url, published_at }[]
+  last_checked_on: string | null;
   created_at: string;
 }
 
@@ -429,7 +435,7 @@ export async function getRunBundle(runId: number): Promise<RunBundle> {
  */
 export type HintSummary = Pick<
   Hint,
-  "id" | "slug" | "title" | "dek" | "direction" | "magnitude" | "impact_score" | "discovered_from" | "run_date"
+  "id" | "slug" | "title" | "dek" | "direction" | "magnitude" | "impact_score" | "discovered_from" | "run_date" | "status"
 >;
 
 export async function listHints(): Promise<HintSummary[]> {
@@ -438,7 +444,7 @@ export async function listHints(): Promise<HintSummary[]> {
     if (!s?.hints) return [];
     return [...s.hints]
       .sort((a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id)
-      .map(({ id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date }) => ({
+      .map(({ id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date, status }) => ({
         id,
         slug,
         title,
@@ -448,10 +454,12 @@ export async function listHints(): Promise<HintSummary[]> {
         impact_score,
         discovered_from,
         run_date,
+        status: status ?? "active",
       }));
   }
   const rs = await getDb().execute(
-    `SELECT id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date
+    `SELECT id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date,
+            COALESCE(status, 'active') AS status
      FROM hints ORDER BY run_date DESC, id DESC`
   );
   return plainRows<HintSummary>(rs);

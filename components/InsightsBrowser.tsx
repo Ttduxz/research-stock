@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import HintCard from "@/components/HintCard";
 import { SEGMENTS, OTHER_SEGMENT, segmentLabel } from "@/lib/segments";
 import type { HintSummary } from "@/lib/db";
+import { isActiveHint } from "@/lib/hint-status";
 
 // เฉพาะคอลัมน์ที่การ์ดใช้ — ทั้งก้อนนี้ถูกส่งไป browser (Client Component) เนื้อหาเต็มของรายงานจึงไม่ควรติดมาด้วย
 export type HintWithSegments = HintSummary & { segments: string[] };
@@ -147,7 +148,8 @@ export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }
           (b.impact_score ?? DEFAULT_SCORE) - (a.impact_score ?? DEFAULT_SCORE) ||
           b.run_date.localeCompare(a.run_date)
       );
-    return sorted;
+    // เรื่องที่จบแล้ว/ถูกหักล้างแล้วไว้ท้ายสุดเสมอ (ภายในแต่ละกลุ่มยังเรียงตามที่เลือก) — ยังเปิดอ่านย้อนหลังได้
+    return [...sorted.filter((h) => isActiveHint(h.status)), ...sorted.filter((h) => !isActiveHint(h.status))];
   }, [byDirection, segment, sort]);
 
   const filtersOn = direction !== "all" || segment !== "all";

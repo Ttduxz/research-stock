@@ -125,6 +125,16 @@ export const SCHEMA = [
     PRIMARY KEY (email, ticker)
   )`,
 
+  // คำขอให้วิเคราะห์หุ้นที่ยังไม่มีในระบบ — ผูกอีเมลเหมือน watchlist จึงไม่อยู่ใน export-db.mjs และไม่ผ่าน lib/cached.ts
+  // "วิเคราะห์แล้ว" ไม่ต้องเก็บสถานะ: ดูจากว่า ticker มีในตาราง stocks แล้วหรือยัง
+  `CREATE TABLE IF NOT EXISTS stock_requests (
+    email      TEXT NOT NULL,
+    ticker     TEXT NOT NULL,
+    note       TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (email, ticker)
+  )`,
+
   `CREATE INDEX IF NOT EXISTS idx_runs_ticker ON research_runs(ticker, run_date)`,
   `CREATE INDEX IF NOT EXISTS idx_access_email ON access_logs(email, created_at)`,
 
@@ -174,6 +184,12 @@ export const MIGRATIONS = [
   // ไม่เก็บ IP ของผู้ใช้แล้ว (privacy) — ลบทั้งคอลัมน์และข้อมูลเก่า ไม่ใช่แค่หยุดเขียน
   // DB ใหม่ที่สร้างจาก SCHEMA ไม่มีคอลัมน์นี้อยู่แล้ว → เจอ "no such column" ซึ่ง applySchema ข้ามให้
   `ALTER TABLE access_logs DROP COLUMN ip`,
+  // อายุขัยของ hint (ดู .claude/commands/review-hints.md): active = ยังมีผล | played-out = เกิดขึ้นครบแล้ว | invalidated = ถูกหักล้างแล้ว
+  // hint ที่ไม่ active ต้องไม่ถูกเอาไปปรับการวิเคราะห์หุ้นตัวอื่นในขั้น 2.6 อีก — รายงานเดิมเก็บไว้ตามที่เขียน ไม่ลบ
+  `ALTER TABLE hints ADD COLUMN status TEXT`,
+  `ALTER TABLE hints ADD COLUMN status_md TEXT`,
+  `ALTER TABLE hints ADD COLUMN status_sources_json TEXT`,
+  `ALTER TABLE hints ADD COLUMN last_checked_on TEXT`,
   `CREATE INDEX IF NOT EXISTS idx_items_ticker ON research_items(ticker, status)`,
 ];
 
@@ -202,6 +218,8 @@ const BACKFILL = [
   `UPDATE research_items SET first_seen_on = (SELECT run_date FROM research_runs WHERE id = research_items.run_id)
    WHERE first_seen_on IS NULL`,
   `UPDATE research_items SET last_seen_on = first_seen_on WHERE last_seen_on IS NULL`,
+  // hint ที่มีอยู่ก่อนมีระบบทบทวน = ยังไม่เคยถูกตัดสินว่าจบ/ถูกหักล้าง → active
+  `UPDATE hints SET status = 'active' WHERE status IS NULL`,
 ];
 
 export async function applySchema(db) {

@@ -141,6 +141,7 @@ export default function SiteSidebar({
           <div className="menu-section">
             <div className="menu-heading">ผู้ดูแล</div>
             {item("/admin/logs", "Log การเข้าใช้")}
+            {item("/admin/requests", "คำขอวิเคราะห์หุ้น")}
           </div>
         )}
 

@@ -4,6 +4,7 @@ import type { HintStat, HintSource } from "@/lib/db";
 import { getHint } from "@/lib/cached";
 import Markdown from "@/components/Markdown";
 import HintBadge from "@/components/HintBadge";
+import { HINT_STATUS_LABEL, isActiveHint } from "@/lib/hint-status";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export default async function InsightPage({
   }
 
   const tickers = hint.discovered_from?.split(",").map((t) => t.trim()).filter(Boolean) ?? [];
+  const statusSources = parseJson<{ title?: string; url: string; published_at?: string }[]>(hint.status_sources_json);
 
   return (
     <>
@@ -63,6 +65,39 @@ export default async function InsightPage({
         )}
         {" "}· {hint.run_date}
       </p>
+
+      {/* ผลรอบทบทวนล่าสุด — เรื่องที่ปิดแล้วต้องบอกชัดตั้งแต่บนสุด เนื้อรายงานด้านล่างเป็นของเดิม ณ วันที่ทำ */}
+      {hint.last_checked_on &&
+        (isActiveHint(hint.status) ? (
+          <p className="hint-checked">
+            ตรวจล่าสุด {hint.last_checked_on} · {HINT_STATUS_LABEL.active}
+            {hint.status_md && <> — {hint.status_md}</>}
+          </p>
+        ) : (
+          <div className={`hint-status-note st-${hint.status}`}>
+            <div className="hint-status-head">
+              <span className={`badge hint-status st-${hint.status}`}>
+                {HINT_STATUS_LABEL[hint.status ?? ""] ?? hint.status}
+              </span>
+              <span className="hint-status-date">ตรวจเมื่อ {hint.last_checked_on}</span>
+            </div>
+            {hint.status_md && <p>{hint.status_md}</p>}
+            {statusSources && statusSources.length > 0 && (
+              <div className="hint-status-src">
+                หลักฐาน:{" "}
+                {statusSources.map((s, i) => (
+                  <a key={i} href={s.url} target="_blank" rel="noopener noreferrer">
+                    {s.title || s.url}
+                    {s.published_at ? ` (${s.published_at})` : ""} ↗
+                  </a>
+                ))}
+              </div>
+            )}
+            <p className="hint-status-foot">
+              รายงานด้านล่างเก็บไว้ตามที่เขียน ณ วันที่ {hint.run_date} เพื่อย้อนดูได้ — ระบบไม่ใช้ประเด็นนี้ประกอบการวิเคราะห์หุ้นแล้ว
+            </p>
+          </div>
+        ))}
 
       {stats && stats.length > 0 && (
         <div className="rail">
