@@ -17,7 +17,9 @@ import { openDb } from "./db-client.mjs";
 const args = process.argv.slice(2);
 const activeOnly = args.includes("--active");
 const dueArg = args.find((a) => a.startsWith("--due"));
-const dueDays = dueArg ? Number(dueArg.split("=")[1] ?? 14) || 14 : null;
+// ห้ามใช้ `|| 14` — --due=0 (ทุก hint ที่ยังมีผล) จะกลายเป็น 14
+const dueVal = Number(dueArg?.split("=")[1]);
+const dueDays = dueArg ? (dueArg.includes("=") && Number.isFinite(dueVal) && dueVal >= 0 ? dueVal : 14) : null;
 const positional = args.find((a) => !a.startsWith("--"));
 // --due ดูทุก hint ที่ยังมีผลไม่ว่าจะเก่าแค่ไหน ถ้าไม่ได้ระบุ days เอง
 const days = Number(positional ?? (dueDays != null ? 3650 : 30));
