@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { listLatestSnapshots } from "@/lib/db";
+import { listLatestSnapshots } from "@/lib/cached";
 import { getQuotes } from "@/lib/quote";
 import {
   rankByPrice,

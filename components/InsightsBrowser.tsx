@@ -3,9 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import HintCard from "@/components/HintCard";
 import { SEGMENTS, OTHER_SEGMENT, segmentLabel } from "@/lib/segments";
-import type { Hint } from "@/lib/db";
+import type { HintSummary } from "@/lib/db";
 
-export type HintWithSegments = Hint & { segments: string[] };
+// เฉพาะคอลัมน์ที่การ์ดใช้ — ทั้งก้อนนี้ถูกส่งไป browser (Client Component) เนื้อหาเต็มของรายงานจึงไม่ควรติดมาด้วย
+export type HintWithSegments = HintSummary & { segments: string[] };
 
 const DIRECTIONS: { key: string; label: string }[] = [
   { key: "all", label: "ทั้งหมด" },

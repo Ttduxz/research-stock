@@ -422,18 +422,39 @@ export async function getRunBundle(runId: number): Promise<RunBundle> {
   };
 }
 
-export async function listHints(): Promise<Hint[]> {
+/**
+ * คอลัมน์ที่หน้ารายการ hint ใช้จริง (การ์ดบนหน้าแรก + /insights) — ไม่รวม content_md / sources / stats ที่ยาว
+ * /insights ส่งรายการนี้เข้า Client Component ทั้งก้อน เดิม SELECT * ทำให้เนื้อหาเต็มของทุกรายงาน (~280KB)
+ * วิ่งไป browser ทุกครั้งที่เปิดหน้า ทั้งที่การ์ดโชว์แค่หัวข้อกับป้าย — เนื้อหาเต็มดึงทีละเรื่องผ่าน getHint()
+ */
+export type HintSummary = Pick<
+  Hint,
+  "id" | "slug" | "title" | "dek" | "direction" | "magnitude" | "impact_score" | "discovered_from" | "run_date"
+>;
+
+export async function listHints(): Promise<HintSummary[]> {
   if (useSnapshot) {
     const s = await loadSnapshot();
     if (!s?.hints) return [];
-    return [...s.hints].sort(
-      (a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id
-    );
+    return [...s.hints]
+      .sort((a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id)
+      .map(({ id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date }) => ({
+        id,
+        slug,
+        title,
+        dek,
+        direction,
+        magnitude,
+        impact_score,
+        discovered_from,
+        run_date,
+      }));
   }
   const rs = await getDb().execute(
-    "SELECT * FROM hints ORDER BY run_date DESC, id DESC"
+    `SELECT id, slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date
+     FROM hints ORDER BY run_date DESC, id DESC`
   );
-  return plainRows<Hint>(rs);
+  return plainRows<HintSummary>(rs);
 }
 
 /** ticker → sector ของหุ้นทุกตัว (ใช้อนุมาน segment ของ hint ในหน้า /insights — ดู lib/segments.ts) */
@@ -463,12 +484,16 @@ export async function getHint(slug: string): Promise<Hint | null> {
   return plainRows<Hint>(rs)[0] ?? null;
 }
 
-/** หุ้นหนึ่งตัว + run ล่าสุด + ผลวิเคราะห์/ทฤษฎีของ run นั้น (ใช้จัดอันดับหน้า /best-price) */
+/**
+ * หุ้นหนึ่งตัว + run ล่าสุด + ผลวิเคราะห์/ทฤษฎีของ run นั้น (ใช้จัดอันดับหน้า /best-price)
+ * เก็บเฉพาะ field ที่ lib/ranking.ts ใช้ — details_json (งบการเงินเต็ม) / summary_md / thesis_md ของทุกหุ้น
+ * รวมกันเกิน 1MB แต่ไม่ถูกใช้เลย ถ้าหน้า /best-price จะแสดงอะไรเพิ่ม ต้องเพิ่มทั้งใน Pick นี้และ SELECT ด้านล่าง
+ */
 export interface LatestSnapshot {
   stock: Stock;
-  run: ResearchRun;
-  analysis: Analysis | null;
-  theories: Theory[];
+  run: Pick<ResearchRun, "id" | "ticker" | "run_date" | "price_at_run" | "entry_plan_json">;
+  analysis: Pick<Analysis, "run_id" | "verdict" | "fundamentals_score" | "momentum_score" | "risk_level"> | null;
+  theories: Pick<Theory, "id" | "run_id" | "title" | "scenarios" | "confidence">[];
 }
 
 /** ดึง run ล่าสุดของหุ้นทุกตัวพร้อม analysis + theories ในคำสั่งเดียว */
@@ -492,12 +517,13 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
 
   const db = getDb();
   const runsRs = await db.execute(`
-    SELECT r.*, s.name, s.exchange, s.sector, s.currency, s.created_at AS stock_created_at
+    SELECT r.id, r.ticker, r.run_date, r.price_at_run, r.entry_plan_json,
+           s.name, s.exchange, s.sector, s.currency, s.created_at AS stock_created_at
     FROM research_runs r
     JOIN stocks s ON s.ticker = r.ticker
     WHERE r.id = (SELECT id FROM research_runs WHERE ticker = s.ticker ORDER BY run_date DESC, id DESC LIMIT 1)
   `);
-  const rows = plainRows<ResearchRun & {
+  const rows = plainRows<LatestSnapshot["run"] & {
     name: string;
     exchange: string | null;
     sector: string | null;
@@ -509,14 +535,19 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
   const ids = rows.map((r) => r.id);
   const placeholders = ids.map(() => "?").join(",");
   const [analysesRs, theoriesRs] = await Promise.all([
-    db.execute({ sql: `SELECT * FROM analyses WHERE run_id IN (${placeholders})`, args: ids }),
     db.execute({
-      sql: `SELECT * FROM theories WHERE run_id IN (${placeholders}) ORDER BY id ASC`,
+      sql: `SELECT run_id, verdict, fundamentals_score, momentum_score, risk_level
+            FROM analyses WHERE run_id IN (${placeholders})`,
+      args: ids,
+    }),
+    db.execute({
+      sql: `SELECT id, run_id, title, scenarios, confidence
+            FROM theories WHERE run_id IN (${placeholders}) ORDER BY id ASC`,
       args: ids,
     }),
   ]);
-  const analyses = plainRows<Analysis>(analysesRs);
-  const theories = plainRows<Theory>(theoriesRs);
+  const analyses = plainRows<NonNullable<LatestSnapshot["analysis"]>>(analysesRs);
+  const theories = plainRows<LatestSnapshot["theories"][number]>(theoriesRs);
 
   return rows.map((r) => ({
     stock: {
@@ -531,15 +562,8 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
       id: r.id,
       ticker: r.ticker,
       run_date: r.run_date,
-      status: r.status,
-      summary_md: r.summary_md,
       price_at_run: r.price_at_run,
-      details_json: r.details_json,
       entry_plan_json: r.entry_plan_json,
-      run_type: r.run_type,
-      prev_run_id: r.prev_run_id,
-      delta_json: r.delta_json,
-      created_at: r.created_at,
     },
     analysis: analyses.find((a) => a.run_id === r.id) ?? null,
     theories: theories.filter((t) => t.run_id === r.id),

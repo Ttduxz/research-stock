@@ -35,6 +35,8 @@ export default function SiteSidebar({
   const [desktop, setDesktop] = useState(true);
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  /** หน้าที่เพิ่งกด แต่ server ยังส่งมาไม่ถึง — ไฮไลต์ทันที + โชว์แถบโหลด ให้รู้ว่ากดติดแล้ว (ข้อมูลอยู่ us-east ใช้เวลาเกือบวินาที) */
+  const [pending, setPending] = useState<string | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia(DESKTOP);
@@ -48,7 +50,10 @@ export default function SiteSidebar({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  useEffect(() => setMobileOpen(false), [pathname]);
+  useEffect(() => {
+    setMobileOpen(false);
+    setPending(null);
+  }, [pathname]);
 
   useEffect(() => {
     document.documentElement.classList.toggle("sb-open", mobileOpen);
@@ -76,7 +81,9 @@ export default function SiteSidebar({
   const expanded = desktop ? !collapsed : mobileOpen;
 
   // หน้าย่อยนับเป็นหมวดเดียวกับหน้าแม่ (เช่น /insights/<slug> ไฮไลต์ Insights) ยกเว้นหน้าแรกที่ต้องตรงเป๊ะ
-  const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  // ระหว่างรอหน้าใหม่ ให้ไฮไลต์หน้าที่กดไปแล้ว ไม่ใช่หน้าที่กำลังจะออก
+  const current = pending ?? pathname;
+  const isActive = (href: string) => (href === "/" ? current === "/" : current.startsWith(href));
 
   const item = (href: string, label: string, desc?: string, extra = "") => (
     <Link
@@ -84,6 +91,11 @@ export default function SiteSidebar({
       href={href}
       className={`menu-link ${extra} ${isActive(href) ? "active" : ""}`}
       aria-current={isActive(href) ? "page" : undefined}
+      onClick={(e) => {
+        // เปิดแท็บใหม่ (ctrl/cmd/shift/กลางเมาส์) หรือกดหน้าเดิม = ไม่มีการเปลี่ยนหน้าในแท็บนี้ ไม่ต้องขึ้นสถานะรอ
+        if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0 || href === pathname) return;
+        setPending(href);
+      }}
     >
       <span className="menu-link-label">{label}</span>
       {desc && <span className="menu-link-desc">{desc}</span>}
@@ -92,6 +104,7 @@ export default function SiteSidebar({
 
   return (
     <>
+      {pending && <div className="nav-progress" role="progressbar" aria-label="กำลังเปิดหน้า" />}
       <button
         type="button"
         className={`sb-toggle ${expanded ? "open" : ""}`}

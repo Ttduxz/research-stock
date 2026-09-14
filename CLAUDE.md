@@ -81,5 +81,5 @@ npm run review:summary   # สรุปผลรอบทบทวนของ�
 
 - Vercel project: `ttduxzs-projects/tee-stock-research` (link ไว้แล้วใน `.vercel/`)
 - โหมดข้อมูลปัจจุบัน: **Turso cloud** (ตั้งแต่ 2026-09-01) — DB `tee-stock` org `duxz` region aws-us-east-1; env อยู่ใน `.env` (local, gitignored) และ Vercel Production
-- ingest / ingest-hint เขียนตรงขึ้น Turso → เว็บ production อัปเดตทันที **ไม่ต้องรัน `npm run deploy`** (ขั้น 6.5 ของ `/research-stock` ข้ามได้ — deploy เฉพาะตอนแก้โค้ด/UI เช่นหน้า `/insights` นี้)
+- ingest / ingest-hint เขียนตรงขึ้น Turso → เว็บ production อัปเดตภายใน ~60 วินาที (หน้าเว็บอ่านผ่าน `lib/cached.ts` ที่ cache query 60s — ลดความหน่วงทุกคลิกเพราะ Vercel/Turso อยู่ us-east) **ไม่ต้องรัน `npm run deploy`** (ขั้น 6.5 ของ `/research-stock` ข้ามได้ — deploy เฉพาะตอนแก้โค้ด/UI เช่นหน้า `/insights` นี้)
 - ไฟล์ `data/stock.db` เป็นข้อมูลเก่าก่อน migrate (สำรองไว้); โหมด snapshot (`data/export.json`) ยังเป็น fallback ถ้า env หาย

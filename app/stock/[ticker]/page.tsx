@@ -1,14 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getStock,
-  listRuns,
-  listReviews,
-  listThesisChecks,
-  getRunBundle,
-  type RunDetails,
-  type EntryPlan,
-} from "@/lib/db";
+import type { RunDetails, EntryPlan } from "@/lib/db";
+import { getStock, listRuns, listReviews, listThesisChecks, getRunBundle } from "@/lib/cached";
 import Markdown, { InlineMarkdown } from "@/components/Markdown";
 import VerdictBadge from "@/components/VerdictBadge";
 import ResearchNote, { noteSections } from "@/components/ResearchNote";

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getHint, type HintStat, type HintSource } from "@/lib/db";
+import type { HintStat, HintSource } from "@/lib/db";
+import { getHint } from "@/lib/cached";
 import Markdown from "@/components/Markdown";
 import HintBadge from "@/components/HintBadge";
 

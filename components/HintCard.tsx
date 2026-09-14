@@ -1,11 +1,11 @@
 import Link from "next/link";
 import HintBadge from "@/components/HintBadge";
-import type { Hint } from "@/lib/db";
+import type { HintSummary } from "@/lib/db";
 
 /** การ์ด hint — ใช้ทั้งในหน้าแรก (featured) และหน้า /insights (กริดเต็ม) ให้หน้าตาสอดคล้องกันทั้งเว็บ
  *  โครงสร้างคงที่เสมอ: หัวข้อ → dek → meta row (badge เดียว + แหล่งที่มา/วันที่) ท้ายสุด
  */
-export default function HintCard({ hint, featured = false }: { hint: Hint; featured?: boolean }) {
+export default function HintCard({ hint, featured = false }: { hint: HintSummary; featured?: boolean }) {
   return (
     <Link
       href={`/insights/${hint.slug}`}

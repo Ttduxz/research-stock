@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listStocksWithLatest, listHints } from "@/lib/db";
+import { listStocksWithLatest, listHints } from "@/lib/cached";
 import StockBrowser from "@/components/StockBrowser";
 import HintCard from "@/components/HintCard";
 

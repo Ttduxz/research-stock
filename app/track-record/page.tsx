@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { listTrackRecordRows, type TrackRecordRow } from "@/lib/db";
+import type { TrackRecordRow } from "@/lib/db";
+import { listTrackRecordRows } from "@/lib/cached";
 import {
   tally,
   byConfidence,

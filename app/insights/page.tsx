@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { listHints, listStockSectors } from "@/lib/db";
+import { listHints, listStockSectors } from "@/lib/cached";
 import { segmentsOfHint } from "@/lib/segments";
 import InsightsBrowser from "@/components/InsightsBrowser";
 
