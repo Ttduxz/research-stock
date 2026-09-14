@@ -117,6 +117,15 @@ export const SCHEMA = [
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
 
+  // หุ้นที่แต่ละคนกด ☆ ติดตาม (หน้า /watchlist) — ผูกกับอีเมลเหมือน access_logs จึงไม่อยู่ใน export-db.mjs ตั้งใจ
+  // และไม่ผ่าน lib/cached.ts (ต่างกันรายคน + ต้องเห็นผลทันทีหลังกด)
+  `CREATE TABLE IF NOT EXISTS watchlist (
+    email      TEXT NOT NULL,
+    ticker     TEXT NOT NULL REFERENCES stocks(ticker),
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    PRIMARY KEY (email, ticker)
+  )`,
+
   `CREATE INDEX IF NOT EXISTS idx_runs_ticker ON research_runs(ticker, run_date)`,
   `CREATE INDEX IF NOT EXISTS idx_access_email ON access_logs(email, created_at)`,
 

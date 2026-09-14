@@ -123,6 +123,11 @@ export default function SiteSidebar({
 
       <nav id="site-sidebar" className="sidebar" aria-label="เมนูหลัก">
         <div className="menu-section">
+          <div className="menu-heading">ของฉัน</div>
+          {item("/watchlist", "หุ้นที่ฉันติดตาม", "หุ้นที่กด ☆ ไว้ + ผลทบทวนล่าสุด")}
+        </div>
+
+        <div className="menu-section">
           <div className="menu-heading">อ่านรายงาน</div>
           {READ_LINKS.map((l) => item(l.href, l.label, l.desc))}
         </div>

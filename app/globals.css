@@ -1985,3 +1985,33 @@ body::after {
   .nav-progress::after { animation: none; left: 0; width: 100%; opacity: 0.6; }
   .sk::after { animation: none; }
 }
+
+/* ============================================================
+   หุ้นที่ฉันติดตาม — ปุ่ม ☆ (components/WatchButton.tsx) + หน้า /watchlist
+   ============================================================ */
+.watch-btn { display: inline-flex; align-items: center; gap: 6px; background: transparent; border: 1px solid var(--border-strong); border-radius: 999px; padding: 5px 13px; color: var(--text-dim); font: inherit; font-size: 13.5px; cursor: pointer; transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease; }
+.watch-btn:hover { color: var(--yellow); border-color: rgba(219, 164, 60, 0.5); }
+.watch-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.watch-btn.on { color: var(--yellow); border-color: rgba(219, 164, 60, 0.5); background: var(--yellow-wash); }
+.watch-btn[data-pending] { opacity: 0.75; }
+.watch-star { font-family: "Segoe UI Symbol", system-ui, sans-serif; font-size: 16px; line-height: 1; }
+.watch-btn.compact { padding: 4px 9px; }
+.stock-head .watch-btn { align-self: center; }
+
+.wl-list { display: grid; gap: 12px; margin-top: 18px; }
+.wl-card { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--border-strong); border-radius: var(--radius); padding: 14px 18px; }
+.wl-card.ps-plan-live { border-left-color: var(--green); }
+.wl-card.ps-plan-broken { border-left-color: var(--red); }
+.wl-card.ps-watch { border-left-color: var(--yellow); }
+.wl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.wl-ticker { font-family: var(--font-data); font-weight: 600; font-size: 16px; }
+.wl-name { color: var(--text-dim); font-size: 13.5px; }
+.wl-head .watch-btn { margin-left: auto; }
+.wl-plan { margin-top: 10px; font-size: 13px; font-weight: 600; }
+.wl-card.ps-plan-live .wl-plan { color: var(--green); }
+.wl-card.ps-plan-broken .wl-plan { color: var(--red); }
+.wl-card.ps-watch .wl-plan { color: var(--yellow); }
+.wl-card.ps-no-action .wl-plan { color: var(--text-faint); }
+.wl-action { margin: 6px 0 0; line-height: 1.75; }
+.wl-meta { margin-top: 10px; font-size: 12.5px; color: var(--text-faint); display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.wl-meta a { color: var(--accent); }

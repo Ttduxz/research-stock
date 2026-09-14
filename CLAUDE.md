@@ -75,6 +75,7 @@ npm run review:summary   # สรุปผลรอบทบทวนของ�
 - หน้า `/admin/logs` เห็นเฉพาะอีเมลใน env `ADMIN_EMAILS` (คนอื่นได้ 404)
 - อีเมลใน env `LOG_EXCLUDE_EMAILS` (คั่นด้วย comma) ไม่ถูกบันทึก log เลย — ใช้กันเจ้าของระบบปน log ผู้ใช้จริง
 - `access_logs` **ห้ามใส่ใน `export-db.mjs`** — กันอีเมลผู้ใช้หลุดไปกับ `data/export.json` ที่ commit
+- หุ้นที่ฉันติดตาม (`/watchlist`): ตาราง `watchlist` (email, ticker) ผูกกับอีเมลเหมือนกัน — **ห้ามใส่ใน `export-db.mjs` และห้ามห่อด้วย `lib/cached.ts`** (ต่างกันรายคน + ต้องเห็นผลทันทีหลังกด ☆) โค้ดอยู่ `lib/watchlist.ts` + server action `app/watchlist/actions.ts` ที่เอาอีเมลจาก session เท่านั้น
 - env ที่ต้องมี (local + Vercel): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`
 
 ## Deployment

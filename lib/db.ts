@@ -615,6 +615,24 @@ export async function listReviews(ticker: string): Promise<Review[]> {
   return plainRows<Review>(rs);
 }
 
+/** รอบทบทวนล่าสุดของหุ้นทุกตัว ตัวละ 1 แถว (ใช้หน้า /watchlist แสดงสถานะของหุ้นที่แต่ละคนติดตาม) */
+export async function listLatestReviews(): Promise<Review[]> {
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s?.reviews) return [];
+    const latest = new Map<string, Review>();
+    for (const r of [...s.reviews].sort((a, b) => b.review_date.localeCompare(a.review_date) || b.id - a.id)) {
+      if (!latest.has(r.ticker)) latest.set(r.ticker, r);
+    }
+    return [...latest.values()];
+  }
+  const rs = await getDb().execute(`
+    SELECT * FROM reviews r
+    WHERE r.id = (SELECT id FROM reviews WHERE ticker = r.ticker ORDER BY review_date DESC, id DESC LIMIT 1)
+  `);
+  return plainRows<Review>(rs);
+}
+
 /** ผลตัดสินทฤษฎีทั้งหมดของหุ้นตัวหนึ่ง เรียงรอบใหม่ก่อน (ใช้ทำ timeline + track record) */
 export async function listThesisChecks(ticker: string): Promise<ThesisCheck[]> {
   const t = ticker.toUpperCase();

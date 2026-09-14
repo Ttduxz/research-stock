@@ -24,5 +24,6 @@ export const getHint = unstable_cache(db.getHint, ["db:getHint"], opts);
 export const listLatestSnapshots = unstable_cache(db.listLatestSnapshots, ["db:listLatestSnapshots"], opts);
 export const listActiveItems = unstable_cache(db.listActiveItems, ["db:listActiveItems"], opts);
 export const listReviews = unstable_cache(db.listReviews, ["db:listReviews"], opts);
+export const listLatestReviews = unstable_cache(db.listLatestReviews, ["db:listLatestReviews"], opts);
 export const listThesisChecks = unstable_cache(db.listThesisChecks, ["db:listThesisChecks"], opts);
 export const listTrackRecordRows = unstable_cache(db.listTrackRecordRows, ["db:listTrackRecordRows"], opts);

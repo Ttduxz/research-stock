@@ -9,6 +9,10 @@ import TocNav from "@/components/TocNav";
 import ScenarioLadder from "@/components/ScenarioLadder";
 import CategoryIcon from "@/components/CategoryIcon";
 import ClaimList, { CheckTally, StatusLegend, checkIndex } from "@/components/ClaimStatus";
+import WatchButton from "@/components/WatchButton";
+import { auth } from "@/auth";
+import { isWatching, watchlistAvailable } from "@/lib/watchlist";
+import { PLAN_STATUS_LABEL } from "@/lib/plan-status";
 
 export const dynamic = "force-dynamic";
 
@@ -30,15 +34,6 @@ function parseJson<T>(raw: string | null): T | null {
   }
 }
 
-/** พาดหัวของการ์ดทบทวน — ตอบคำถามแรกของคนอ่านว่า "แล้วต้องทำอะไรไหม" ก่อนจะลงรายละเอียด */
-// คำพวกนี้ผ่านการทดสอบกับคนอ่านทั่วไปแล้ว — "จับตาไว้" ของเดิมถูกเข้าใจผิดว่าแปลว่า "หุ้นน่าสนใจ"
-const PLAN_STATUS_LABEL: Record<string, string> = {
-  "no-action": "ยังไม่ต้องทำอะไร",
-  watch: "ยังไม่ต้องทำอะไร แต่มีเรื่องรอดู",
-  "plan-live": "ราคาเข้าโซนซื้อของแผนแล้ว",
-  "plan-broken": "แผนเดิมใช้ไม่ได้แล้ว",
-};
-
 interface Scenario {
   target?: number;
   probability?: number;
@@ -59,10 +54,14 @@ export default async function StockPage({
   const stock = await getStock(ticker);
   if (!stock) notFound();
 
-  const [runs, reviews, checks] = await Promise.all([
+  // สถานะ ☆ ติดตาม เป็นของแต่ละคน — อ่านสด (ไม่ผ่าน cache) คู่ขนานกับข้อมูลหุ้นที่ cache ร่วมกัน
+  const session = await auth();
+  const email = session?.user?.email ?? null;
+  const [runs, reviews, checks, watching] = await Promise.all([
     listRuns(ticker),
     listReviews(ticker),
     listThesisChecks(ticker),
+    email && watchlistAvailable ? isWatching(email, ticker) : Promise.resolve(false),
   ]);
   const selectedRunId =
     runParam && runs.some((r) => r.id === Number(runParam))
@@ -150,6 +149,7 @@ export default async function StockPage({
           )
         )}
         {bundle?.analysis && <VerdictBadge verdict={bundle.analysis.verdict} />}
+        {email && watchlistAvailable && <WatchButton ticker={stock.ticker} watching={watching} />}
       </div>
       {latestReview?.price_at_review != null && bundle?.run?.price_at_run != null && (
         <p className="price-note">
