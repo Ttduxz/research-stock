@@ -40,6 +40,15 @@ function getDb(): Client {
   return _db;
 }
 
+/** อีเมลที่ไม่ต้องเก็บ log (เช่น เจ้าของระบบเอง) — env LOG_EXCLUDE_EMAILS คั่นด้วย comma */
+function isExcluded(email: string): boolean {
+  return (process.env.LOG_EXCLUDE_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean)
+    .includes(email.toLowerCase());
+}
+
 export async function logAccess(entry: {
   email: string;
   name?: string | null;
@@ -48,7 +57,7 @@ export async function logAccess(entry: {
   ip?: string | null;
   userAgent?: string | null;
 }): Promise<void> {
-  if (!writable) return;
+  if (!writable || isExcluded(entry.email)) return;
   try {
     await getDb().execute({
       sql: `INSERT INTO access_logs (email, name, event, path, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)`,
