@@ -2035,3 +2035,9 @@ body::after {
 .stock-card::after { right: 16px; }
 .card-star { right: 16px; }
 .stock-card:has(.card-star)::after { right: 40px; }
+
+/* ตอนจัดหัวหน้าหุ้นให้อยู่กึ่งกลาง h1 ถูกตั้ง margin 0 + line-height 1 ระยะใต้หัวที่เคยได้จาก h1 (8px + line-height)
+   จึงหายไป แล้ว .price-note ที่มี margin-top -10px (ออกแบบไว้สำหรับเลย์เอาต์เดิม) เลยถูกดึงขึ้นไปทับแถวหัว
+   → ให้แถวหัวถือระยะด้านล่างเอง และบรรทัดหมายเหตุราคาที่ตามมาไม่ต้องดึงขึ้นอีก */
+.ticker-head { margin-bottom: 10px; }
+.ticker-head + .price-note { margin-top: 0; }
