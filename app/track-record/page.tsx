@@ -19,6 +19,7 @@ import {
 import { segmentOf, segmentLabel } from "@/lib/segments";
 import { InlineMarkdown } from "@/components/Markdown";
 import ClaimFeed, { type FeedTab } from "@/components/ClaimFeed";
+import Chevron from "@/components/Chevron";
 
 export const dynamic = "force-dynamic";
 
@@ -449,7 +450,7 @@ export default async function TrackRecordPage() {
                       {n} ข้อ
                     </span>
                     <span className="trk-chevron" aria-hidden="true">
-                      ▸
+                      <Chevron />
                     </span>
                   </summary>
                   <div className="trk-stock-body">

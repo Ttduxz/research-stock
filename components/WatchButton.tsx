@@ -30,12 +30,14 @@ export default function WatchButton({
       aria-label={label}
       title={label}
       data-pending={pending ? "" : undefined}
-      onClick={() =>
+      onClick={(e) => {
+        // ปุ่มนี้อยู่ในแถวที่กดกางได้ (<summary> หน้า /watchlist) — กัน default ไม่ให้กด ★ แล้วแถวกาง/หุบไปด้วย
+        e.preventDefault();
         startTransition(async () => {
           setShown(!shown);
           await toggleWatch(ticker, !shown);
-        })
-      }
+        });
+      }}
     >
       <span className="watch-star" aria-hidden="true">
         {shown ? "★" : "☆"}
