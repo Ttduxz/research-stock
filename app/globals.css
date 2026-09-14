@@ -108,9 +108,7 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 .sc-name,
 .tr-name,
 .meter-top,
-.fin-tbl thead th,
-.site-nav a,
-.tagline {
+.fin-tbl thead th {
   font-family: var(--font-data);
   font-size: var(--eyebrow-size);
   letter-spacing: var(--eyebrow-track);
@@ -119,7 +117,6 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
 }
 /* ป้ายที่มีตัวไทยปนต้องใหญ่กว่านิดหนึ่ง — ตัวไทยมีสระบน-ล่าง ขนาด 11px เริ่มอ่านยาก */
 .stat-k, .sc-name, .tr-name, .meter-top, .rank-score-l { font-size: 11.5px; }
-.site-nav a { font-size: 12px; letter-spacing: 0.09em; }
 
 /* ---- masthead ---- */
 .site-header {
@@ -156,10 +153,6 @@ a:hover { text-decoration: underline; text-underline-offset: 3px; }
     linear-gradient(var(--green), var(--green)) 6px 100% / 3px 10px no-repeat,
     linear-gradient(var(--yellow), var(--yellow)) 12px 100% / 3px 13px no-repeat;
 }
-.site-header .tagline { color: var(--text-faint); }
-.site-nav { margin-left: auto; display: flex; gap: 22px; }
-.site-nav a { color: var(--text-dim); }
-.site-nav a:hover { color: var(--accent); text-decoration: none; }
 
 /* ---- ลำดับชั้นหัวข้อ ---- */
 h1 {
@@ -1165,22 +1158,6 @@ body::after {
 .run-picker a { transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, transform 0.18s var(--ease-out); }
 .run-picker a:hover { transform: translateY(-3px); }
 
-/* ลิงก์บนแถบหัวเว็บ: เส้นใต้วิ่งจากซ้าย (ออกทางขวาตอนเอาเมาส์ออก) */
-.site-nav a { position: relative; }
-.site-nav a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -5px;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform 0.3s var(--ease-out);
-}
-.site-nav a:hover { text-decoration: none; }
-.site-nav a:hover::after { transform: scaleX(1); transform-origin: left; }
 .logo-mark { transition: transform 0.3s var(--ease-spring); transform-origin: bottom; }
 .site-header .logo:hover .logo-mark { transform: scaleY(1.25); }
 
@@ -1671,19 +1648,6 @@ body::after {
 /* ============================================================
    Login + หน้า log หลังบ้าน
    ============================================================ */
-.signout-form { display: contents; }
-.signout-btn {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--text-faint);
-  font-family: var(--font-data);
-  font-size: 12px;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-}
-.signout-btn:hover { color: var(--red); }
 
 .login-box {
   max-width: 420px;
@@ -1726,8 +1690,6 @@ body::after {
 /* ============================================================
    Donate (PromptPay Thai QR)
    ============================================================ */
-.site-nav a.nav-donate { color: var(--green); }
-.site-nav a.nav-donate:hover { color: var(--green); }
 
 .footer-donate {
   margin-top: 48px;
@@ -1920,3 +1882,54 @@ body::after {
 .trk-warn .trk-result { color: var(--yellow); }
 .trk-bad .trk-result { color: var(--red); }
 .trk-unknown .trk-result { color: var(--text-faint); }
+
+/* ============================================================
+   เมนูหลักแถบซ้าย (components/SiteSidebar.tsx) — เต็มความสูง พับเข้าซ้ายได้
+   สถานะอยู่ที่คลาสบน <html>: sb-collapsed (จอกว้าง พับไว้) / sb-open (จอแคบ เปิดอยู่)
+   ============================================================ */
+:root { --sb-w: 248px; --header-h: 56px; }
+
+/* หัวเว็บติดด้านบน เพื่อให้ปุ่มพับ/เปิดเมนูกดได้ตลอดไม่ว่าเลื่อนไปไหน */
+.site-header { position: sticky; top: 0; z-index: 40; background: var(--bg); }
+.masthead { max-width: none; height: var(--header-h); padding: 0 20px; display: flex; align-items: center; gap: 14px; }
+
+.sb-toggle { flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim); cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease; }
+.sb-toggle:hover { color: var(--text); border-color: var(--border-strong); background: var(--bg-hover); }
+.sb-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sb-bars { position: relative; width: 16px; height: 12px; }
+.sb-bars span { position: absolute; left: 0; width: 100%; height: 2px; border-radius: 2px; background: currentColor; transition: width 0.2s ease; }
+.sb-bars span:nth-child(1) { top: 0; }
+.sb-bars span:nth-child(2) { top: 5px; }
+.sb-bars span:nth-child(3) { top: 10px; }
+/* เปิดอยู่: ขีดกลาง/ล่างสั้นลง บอกใบ้ว่ากดแล้วจะพับเข้าซ้าย */
+.sb-toggle.open .sb-bars span:nth-child(2) { width: 70%; }
+.sb-toggle.open .sb-bars span:nth-child(3) { width: 45%; }
+
+.sidebar { position: fixed; top: var(--header-h); left: 0; bottom: 0; width: var(--sb-w); z-index: 35; display: flex; flex-direction: column; background: var(--bg); border-right: 1px solid var(--border); padding: 10px 10px 12px; overflow-y: auto; transform: translateX(0); visibility: visible; transition: transform 0.22s ease, visibility 0s linear 0s; }
+.page-shell.has-sidebar { transition: padding-left 0.22s ease; }
+
+.menu-section + .menu-section { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; }
+.menu-heading { font-family: var(--font-data); font-size: 11px; letter-spacing: 0.08em; color: var(--text-faint); padding: 8px 10px 4px; }
+.menu-link { display: flex; flex-direction: column; gap: 1px; padding: 8px 10px; border-radius: 8px; color: var(--text); text-decoration: none; }
+.menu-link:hover { background: var(--bg-hover); text-decoration: none; }
+.menu-link.active { background: var(--accent-soft); }
+.menu-link.active .menu-link-label { color: var(--accent); }
+.menu-link-label { font-size: 14.5px; font-weight: 600; }
+.menu-link-desc { font-size: 12.5px; color: var(--text-faint); }
+.menu-donate .menu-link-label { color: var(--green); }
+.menu-account { margin-top: auto; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--rule); padding: 12px 6px 0; }
+.menu-email { flex: 1; min-width: 0; font-size: 12px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-signout { flex: none; background: none; border: 1px solid var(--border); border-radius: 6px; padding: 4px 9px; color: var(--text-dim); font: inherit; font-size: 12px; cursor: pointer; }
+.menu-signout:hover { color: var(--red); border-color: rgba(240, 104, 94, 0.4); }
+
+/* พับแล้วซ่อนจาก Tab/screen reader ด้วย (visibility หน่วงให้จบแอนิเมชันเลื่อนก่อน) */
+@media (min-width: 1024px) {
+  .page-shell.has-sidebar { padding-left: var(--sb-w); }
+  html.sb-collapsed .page-shell.has-sidebar { padding-left: 0; }
+  html.sb-collapsed .sidebar { transform: translateX(-100%); visibility: hidden; transition: transform 0.22s ease, visibility 0s linear 0.22s; }
+}
+@media (max-width: 1023px) {
+  .sidebar { width: min(300px, 86vw); box-shadow: 16px 0 40px rgba(0, 0, 0, 0.45); transform: translateX(-100%); visibility: hidden; transition: transform 0.22s ease, visibility 0s linear 0.22s; }
+  html.sb-open .sidebar { transform: translateX(0); visibility: visible; transition: transform 0.22s ease, visibility 0s linear 0s; }
+  .sb-backdrop { position: fixed; top: var(--header-h); left: 0; right: 0; bottom: 0; z-index: 34; background: rgba(0, 0, 0, 0.5); }
+}

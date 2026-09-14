@@ -1,4 +1,4 @@
-import { createClient, type Client } from "@libsql/client";
+import { createClient, type Client, type ResultSet } from "@libsql/client";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -293,6 +293,17 @@ async function loadSnapshot(): Promise<Snapshot | null> {
   return _snapshot;
 }
 
+/**
+ * แถวจาก libSQL เป็น object พิเศษ (มี prototype + key ตัวเลข) ส่งเข้า Client Component ตรงๆ ไม่ได้
+ * — React เตือน "Only plain objects can be passed to Client Components" ทุกแถว (หน้าแรกขึ้น 35 ข้อ)
+ * แปลงเป็น plain object ด้วยชื่อคอลัมน์เดิม ค่าที่อ่านได้จึงเหมือนเดิมทุกตัว
+ */
+function plainRows<T>(rs: ResultSet): T[] {
+  return rs.rows.map((row) =>
+    Object.fromEntries(rs.columns.map((col) => [col, (row as unknown as Record<string, unknown>)[col]]))
+  ) as T[];
+}
+
 function latestRunOf(runs: ResearchRun[], ticker: string): ResearchRun | null {
   const mine = runs.filter((r) => r.ticker === ticker);
   mine.sort((a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id);
@@ -347,7 +358,7 @@ export async function listStocksWithLatest(): Promise<StockOverview[]> {
       ON rv.id = (SELECT id FROM reviews WHERE ticker = s.ticker ORDER BY review_date DESC, id DESC LIMIT 1)
     ORDER BY r.run_date DESC NULLS LAST, s.ticker ASC
   `);
-  return rs.rows as unknown as StockOverview[];
+  return plainRows<StockOverview>(rs);
 }
 
 export async function getStock(ticker: string): Promise<Stock | null> {
@@ -360,7 +371,7 @@ export async function getStock(ticker: string): Promise<Stock | null> {
     sql: "SELECT * FROM stocks WHERE ticker = ?",
     args: [t],
   });
-  return (rs.rows[0] as unknown as Stock) ?? null;
+  return plainRows<Stock>(rs)[0] ?? null;
 }
 
 export async function listRuns(ticker: string): Promise<ResearchRun[]> {
@@ -376,7 +387,7 @@ export async function listRuns(ticker: string): Promise<ResearchRun[]> {
     sql: "SELECT * FROM research_runs WHERE ticker = ? ORDER BY run_date DESC, id DESC",
     args: [t],
   });
-  return rs.rows as unknown as ResearchRun[];
+  return plainRows<ResearchRun>(rs);
 }
 
 export async function getRunBundle(runId: number): Promise<RunBundle> {
@@ -404,10 +415,10 @@ export async function getRunBundle(runId: number): Promise<RunBundle> {
     db.execute({ sql: "SELECT * FROM theories WHERE run_id = ? ORDER BY id ASC", args: [runId] }),
   ]);
   return {
-    run: (run.rows[0] as unknown as ResearchRun) ?? null,
-    items: items.rows as unknown as ResearchItem[],
-    analysis: (analysis.rows[0] as unknown as Analysis) ?? null,
-    theories: theories.rows as unknown as Theory[],
+    run: plainRows<ResearchRun>(run)[0] ?? null,
+    items: plainRows<ResearchItem>(items),
+    analysis: plainRows<Analysis>(analysis)[0] ?? null,
+    theories: plainRows<Theory>(theories),
   };
 }
 
@@ -422,7 +433,7 @@ export async function listHints(): Promise<Hint[]> {
   const rs = await getDb().execute(
     "SELECT * FROM hints ORDER BY run_date DESC, id DESC"
   );
-  return rs.rows as unknown as Hint[];
+  return plainRows<Hint>(rs);
 }
 
 /** ticker → sector ของหุ้นทุกตัว (ใช้อนุมาน segment ของ hint ในหน้า /insights — ดู lib/segments.ts) */
@@ -449,7 +460,7 @@ export async function getHint(slug: string): Promise<Hint | null> {
     sql: "SELECT * FROM hints WHERE slug = ?",
     args: [slug],
   });
-  return (rs.rows[0] as unknown as Hint) ?? null;
+  return plainRows<Hint>(rs)[0] ?? null;
 }
 
 /** หุ้นหนึ่งตัว + run ล่าสุด + ผลวิเคราะห์/ทฤษฎีของ run นั้น (ใช้จัดอันดับหน้า /best-price) */
@@ -486,13 +497,13 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
     JOIN stocks s ON s.ticker = r.ticker
     WHERE r.id = (SELECT id FROM research_runs WHERE ticker = s.ticker ORDER BY run_date DESC, id DESC LIMIT 1)
   `);
-  const rows = runsRs.rows as unknown as (ResearchRun & {
+  const rows = plainRows<ResearchRun & {
     name: string;
     exchange: string | null;
     sector: string | null;
     currency: string;
     stock_created_at: string;
-  })[];
+  }>(runsRs);
   if (rows.length === 0) return [];
 
   const ids = rows.map((r) => r.id);
@@ -504,8 +515,8 @@ export async function listLatestSnapshots(): Promise<LatestSnapshot[]> {
       args: ids,
     }),
   ]);
-  const analyses = analysesRs.rows as unknown as Analysis[];
-  const theories = theoriesRs.rows as unknown as Theory[];
+  const analyses = plainRows<Analysis>(analysesRs);
+  const theories = plainRows<Theory>(theoriesRs);
 
   return rows.map((r) => ({
     stock: {
@@ -560,7 +571,7 @@ export async function listActiveItems(ticker: string): Promise<ResearchItem[]> {
           ORDER BY published_at DESC NULLS LAST, importance DESC, id DESC`,
     args: [t],
   });
-  return rs.rows as unknown as ResearchItem[];
+  return plainRows<ResearchItem>(rs);
 }
 
 /** รอบทบทวนรายสัปดาห์ของหุ้นตัวหนึ่ง ใหม่สุดก่อน — คู่กับ listRuns() เวลาต่อ timeline */
@@ -577,7 +588,7 @@ export async function listReviews(ticker: string): Promise<Review[]> {
     sql: "SELECT * FROM reviews WHERE ticker = ? ORDER BY review_date DESC, id DESC",
     args: [t],
   });
-  return rs.rows as unknown as Review[];
+  return plainRows<Review>(rs);
 }
 
 /** ผลตัดสินทฤษฎีทั้งหมดของหุ้นตัวหนึ่ง เรียงรอบใหม่ก่อน (ใช้ทำ timeline + track record) */
@@ -592,7 +603,7 @@ export async function listThesisChecks(ticker: string): Promise<ThesisCheck[]> {
     sql: "SELECT * FROM thesis_checks WHERE ticker = ? ORDER BY review_id DESC, id ASC",
     args: [t],
   });
-  return rs.rows as unknown as ThesisCheck[];
+  return plainRows<ThesisCheck>(rs);
 }
 
 /** ผลตัดสินหนึ่งข้อ + บริบทที่ใช้แยกกลุ่มในหน้า /track-record (ความมั่นใจของทฤษฎีต้นทาง, เซกเตอร์, verdict ตอนตั้ง) */
@@ -682,5 +693,5 @@ export async function listTrackRecordRows(): Promise<TrackRecordRow[]> {
     LEFT JOIN stocks s ON s.ticker = c.ticker
     ORDER BY rv.review_date DESC, c.review_id DESC, c.id ASC
   `);
-  return latestOnly(rs.rows as unknown as TrackRecordRow[]);
+  return latestOnly(plainRows<TrackRecordRow>(rs));
 }
