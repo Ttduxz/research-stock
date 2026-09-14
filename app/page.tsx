@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { listStocksWithLatest, listHints } from "@/lib/cached";
+import { auth } from "@/auth";
+import { listWatchTickers } from "@/lib/watchlist";
 import StockBrowser from "@/components/StockBrowser";
 import HintCard from "@/components/HintCard";
 
@@ -33,7 +35,14 @@ function broadSector(sector: string | null): string {
 }
 
 export default async function HomePage() {
-  const [stocks, hints] = await Promise.all([listStocksWithLatest(), listHints()]);
+  // รายการ ☆ ติดตามเป็นของแต่ละคน — อ่านสด (ไม่ผ่าน cache) คู่ขนานกับข้อมูลหุ้นที่ cache ร่วมกัน
+  const session = await auth();
+  const email = session?.user?.email ?? null;
+  const [stocks, hints, watched] = await Promise.all([
+    listStocksWithLatest(),
+    listHints(),
+    email ? listWatchTickers(email) : Promise.resolve([] as string[]),
+  ]);
   // หน้าแรกโชว์แค่ 3 อันดับที่ impact สูงสุด (ไม่ใช่ 3 อันล่าสุด) — เรียงตาม impact_score แล้วค่อย tie-break ด้วยความใหม่
   const topHints = [...hints]
     .sort((a, b) => (b.impact_score ?? 0) - (a.impact_score ?? 0) || b.run_date.localeCompare(a.run_date))
@@ -85,7 +94,7 @@ export default async function HomePage() {
           <code>/research-stock &lt;TICKER&gt;</code>
         </div>
       ) : (
-        <StockBrowser sections={sections} />
+        <StockBrowser sections={sections} watched={watched} />
       )}
     </>
   );

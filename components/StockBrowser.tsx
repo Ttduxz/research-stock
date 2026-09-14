@@ -8,10 +8,14 @@ import type { StockOverview } from "@/lib/db";
 /** หน้าแรก: กล่องค้นหา + รายการหุ้นแบ่งตามกลุ่มอุตสาหกรรม กรองแบบ client-side (รายชื่อหุ้นเริ่มยาวขึ้นเรื่อยๆ) */
 export default function StockBrowser({
   sections,
+  watched = [],
 }: {
   sections: { sector: string; stocks: StockOverview[] }[];
+  /** ticker ที่คนดูกด ☆ ติดตามไว้ — การ์ดของตัวนั้นมีดาวเหลืองกำกับ */
+  watched?: string[];
 }) {
   const [query, setQuery] = useState("");
+  const watchedSet = useMemo(() => new Set(watched), [watched]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -71,7 +75,14 @@ export default function StockBrowser({
                   : s.latest_price;
                 return (
                   <Link key={s.ticker} href={`/stock/${s.ticker}`} className="stock-card">
-                    <div className="ticker">{s.ticker}</div>
+                    <div className="ticker">
+                      {s.ticker}
+                      {watchedSet.has(s.ticker) && (
+                        <span className="card-star" title="ติดตามอยู่" aria-label="ติดตามอยู่">
+                          ★
+                        </span>
+                      )}
+                    </div>
                     <div className="name">{s.name}</div>
                     <div className="meta">
                       <VerdictBadge verdict={s.latest_verdict} />

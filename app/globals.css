@@ -2015,3 +2015,23 @@ body::after {
 .wl-action { margin: 6px 0 0; line-height: 1.75; }
 .wl-meta { margin-top: 10px; font-size: 12.5px; color: var(--text-faint); display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .wl-meta a { color: var(--accent); }
+
+/* หัวหน้าหุ้น: ticker 44px / ราคา 22px / วันที่ 12px / ป้าย / ปุ่ม ☆ วางแบบ baseline แล้วป้ายกับปุ่มลอยคนละระดับ
+   → จัดกึ่งกลางแนวตั้งทั้งแถว และให้ป้าย verdict กับปุ่มติดตามสูงเท่ากัน */
+.ticker-head { align-items: center; row-gap: 8px; }
+.ticker-head h1 { margin: 0; line-height: 1; }
+.ticker-head .price, .ticker-head .price-when { line-height: 1; }
+.ticker-head .badge, .ticker-head .watch-btn { height: 30px; box-sizing: border-box; display: inline-flex; align-items: center; }
+.ticker-head .watch-btn { padding-top: 0; padding-bottom: 0; }
+
+/* ดาวเหลืองบนการ์ดหน้ารวมหุ้น = หุ้นที่คนดูกดติดตามไว้ (แสดงอย่างเดียว กดไม่ได้ — การ์ดทั้งใบเป็นลิงก์) */
+.card-star { position: absolute; top: 14px; right: 0; color: var(--yellow); font-family: "Segoe UI Symbol", system-ui, sans-serif; font-size: 17px; line-height: 1; }
+/* มุมขวาบนเป็นที่ของลูกศร → ตอน hover อยู่แล้ว — การ์ดที่มีดาวให้ลูกศรขยับไปทางซ้ายของดาว ไม่ทับกัน */
+.stock-card:has(.card-star)::after { right: 24px; }
+
+/* การ์ดหุ้น/insight: เดิมเว้นขอบในซ้ายขวา 0 — ตอน hover ขึ้นกรอบ (box-shadow) แล้วเนื้อหาชิดขอบกรอบจนดูอึดอัด
+   เว้นขอบใน 16px แล้วเลื่อนของที่ปักมุมขวา (ลูกศร → และดาว ★) เข้ามาเท่ากัน */
+.stock-card { padding-left: 16px; padding-right: 16px; }
+.stock-card::after { right: 16px; }
+.card-star { right: 16px; }
+.stock-card:has(.card-star)::after { right: 40px; }
