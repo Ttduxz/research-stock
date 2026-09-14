@@ -74,7 +74,6 @@ export default async function AccessLogsPage({ searchParams }: { searchParams: P
               <th>ผู้ใช้</th>
               <th>เหตุการณ์</th>
               <th>หน้า</th>
-              <th>IP</th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +83,6 @@ export default async function AccessLogsPage({ searchParams }: { searchParams: P
                 <td>{r.email}</td>
                 <td>{EVENT_LABEL[r.event] ?? r.event}</td>
                 <td className="log-path">{r.path ?? "—"}</td>
-                <td className="log-dim">{r.ip ?? "—"}</td>
               </tr>
             ))}
           </tbody>

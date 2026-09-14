@@ -4,6 +4,7 @@ import { createClient, type Client } from "@libsql/client";
  * บันทึกการเข้าใช้เว็บ (ตาราง access_logs — นิยามใน scripts/schema.mjs)
  * เขียนได้เฉพาะโหมด Turso หรือ local file; โหมด snapshot บน Vercel ไม่มี DB ที่เขียนได้ → ข้ามเงียบๆ
  * การ log ห้ามทำให้หน้าเว็บพัง — error ทุกอย่างกลืนแล้ว console.error
+ * ไม่เก็บ IP ของผู้ใช้ (privacy) — เดิมมีคอลัมน์ ip แต่ลบทิ้งแล้วทั้งคอลัมน์และข้อมูลเก่า อย่าเพิ่มกลับ
  */
 
 export type AccessEvent = "login" | "logout" | "view";
@@ -14,7 +15,6 @@ export interface AccessLog {
   name: string | null;
   event: AccessEvent;
   path: string | null;
-  ip: string | null;
   user_agent: string | null;
   created_at: string; // UTC 'YYYY-MM-DD HH:MM:SS'
 }
@@ -54,19 +54,17 @@ export async function logAccess(entry: {
   name?: string | null;
   event: AccessEvent;
   path?: string | null;
-  ip?: string | null;
   userAgent?: string | null;
 }): Promise<void> {
   if (!writable || isExcluded(entry.email)) return;
   try {
     await getDb().execute({
-      sql: `INSERT INTO access_logs (email, name, event, path, ip, user_agent) VALUES (?, ?, ?, ?, ?, ?)`,
+      sql: `INSERT INTO access_logs (email, name, event, path, user_agent) VALUES (?, ?, ?, ?, ?)`,
       args: [
         entry.email.toLowerCase(),
         entry.name ?? null,
         entry.event,
         entry.path ?? null,
-        entry.ip ?? null,
         entry.userAgent?.slice(0, 300) ?? null,
       ],
     });

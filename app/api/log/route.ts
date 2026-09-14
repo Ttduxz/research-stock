@@ -19,7 +19,7 @@ export async function POST(req: Request) {
     name: session.user?.name,
     event: "view",
     path,
-    ip: h.get("x-forwarded-for")?.split(",")[0].trim() ?? h.get("x-real-ip"),
+    // ไม่เก็บ IP (privacy) — ดู lib/access-log.ts
     userAgent: h.get("user-agent"),
   });
   return new NextResponse(null, { status: 204 });

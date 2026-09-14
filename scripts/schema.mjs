@@ -112,7 +112,6 @@ export const SCHEMA = [
     name        TEXT,
     event       TEXT NOT NULL,
     path        TEXT,
-    ip          TEXT,
     user_agent  TEXT,
     created_at  TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
@@ -172,6 +171,9 @@ export const MIGRATIONS = [
   // ผลตรวจนี้ดีหรือร้ายต่อหุ้น (good | bad | mixed) — เดาจาก claim_type + status ไม่ได้ เพราะ risk บางข้อคือ
   // "ความเสี่ยงที่ทฤษฎีจะผิด" (เช่นทฤษฎีมองลบ) ซึ่งถ้าเกิดจริงกลับดีต่อหุ้น — null ได้เฉพาะ too-early
   `ALTER TABLE thesis_checks ADD COLUMN impact TEXT`,
+  // ไม่เก็บ IP ของผู้ใช้แล้ว (privacy) — ลบทั้งคอลัมน์และข้อมูลเก่า ไม่ใช่แค่หยุดเขียน
+  // DB ใหม่ที่สร้างจาก SCHEMA ไม่มีคอลัมน์นี้อยู่แล้ว → เจอ "no such column" ซึ่ง applySchema ข้ามให้
+  `ALTER TABLE access_logs DROP COLUMN ip`,
   `CREATE INDEX IF NOT EXISTS idx_items_ticker ON research_items(ticker, status)`,
 ];
 
@@ -208,7 +210,8 @@ export async function applySchema(db) {
     try {
       await db.execute(stmt);
     } catch (err) {
-      if (!/duplicate column/i.test(String(err))) throw err;
+      // duplicate column = ADD COLUMN ที่เคยรันแล้ว · no such column = DROP COLUMN ที่เคยรันแล้ว
+      if (!/duplicate column|no such column/i.test(String(err))) throw err;
     }
   }
   for (const stmt of BACKFILL) {
