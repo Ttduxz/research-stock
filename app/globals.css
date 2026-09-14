@@ -2065,7 +2065,6 @@ body::after {
 /* ============================================================
    ขอให้วิเคราะห์หุ้น (components/RequestStockForm.tsx) + หน้า /admin/requests
    ============================================================ */
-.req-section { margin-top: 56px; }
 .req-form { margin-top: 8px; }
 .req-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .req-form input { background: var(--bg-sunken); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; color: var(--text); font: inherit; font-size: 14px; }
@@ -2078,7 +2077,18 @@ body::after {
 .req-msg { margin: 10px 0 0; font-size: 13.5px; }
 .req-msg.ok { color: var(--green); }
 .req-msg.err { color: var(--red); }
-.empty-state .req-form { margin-top: 18px; }
-.empty-state .req-row { justify-content: center; }
 .req-ticker { font-family: var(--font-data); font-weight: 600; }
 .req-notes { max-width: 420px; white-space: normal; line-height: 1.6; }
+
+/* หน้า /request: รายการคำขอของตัวเอง + ลิงก์ในผลค้นหาที่ไม่เจอ (ฟอร์มย้ายมาอยู่เมนูนี้แล้ว) */
+.req-form { margin-top: 4px; }
+.req-empty { color: var(--text-faint); font-size: 14px; }
+.req-mine { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.req-mine li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 14px; padding: 10px 14px; background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--yellow); border-radius: 8px; }
+.req-mine li.done { border-left-color: var(--green); }
+.req-state { font-size: 13px; color: var(--yellow); }
+.req-state.done { color: var(--green); }
+.req-date { font-size: 12.5px; color: var(--text-faint); font-family: var(--font-data); }
+.req-note { flex-basis: 100%; font-size: 13px; color: var(--text-dim); }
+.empty-request { margin-top: 14px; }
+.empty-request a { font-weight: 600; }

@@ -39,6 +39,7 @@ export async function requestStock(_prev: RequestState | null, formData: FormDat
     };
 
   const result = await addRequest(email, ticker, note);
+  revalidatePath("/request");
   revalidatePath("/admin/requests");
   return {
     ok: true,

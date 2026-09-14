@@ -77,7 +77,7 @@ npm run review:summary   # สรุปผลรอบทบทวนของ�
 - หน้า `/admin/logs` เห็นเฉพาะอีเมลใน env `ADMIN_EMAILS` (คนอื่นได้ 404)
 - อีเมลใน env `LOG_EXCLUDE_EMAILS` (คั่นด้วย comma) ไม่ถูกบันทึก log เลย — ใช้กันเจ้าของระบบปน log ผู้ใช้จริง
 - `access_logs` **ห้ามใส่ใน `export-db.mjs`** — กันอีเมลผู้ใช้หลุดไปกับ `data/export.json` ที่ commit
-- คำขอให้วิเคราะห์หุ้น (ฟอร์มท้ายหน้ารวมหุ้น + ผลค้นหาที่ไม่เจอ): ตาราง `stock_requests` (email, ticker, note) ผูกอีเมลเหมือนกัน — **ไม่อยู่ใน `export-db.mjs` ไม่ผ่าน `lib/cached.ts`**; หน้า `/admin/requests` แสดงแค่จำนวนคนขอ ไม่แสดงอีเมล; ดูคิวใน Claude Code ด้วย `node scripts/list-requests.mjs` แล้วเลือกรัน `/research-stock` เอง (ไม่รันอัตโนมัติ)
+- คำขอให้วิเคราะห์หุ้น (เมนู `/request` ฟอร์ม + คำขอของตัวเอง; ผลค้นหาที่ไม่เจอบนหน้ารวมหุ้นลิงก์มาพร้อม `?ticker=`): ตาราง `stock_requests` (email, ticker, note) ผูกอีเมลเหมือนกัน — **ไม่อยู่ใน `export-db.mjs` ไม่ผ่าน `lib/cached.ts`**; หน้า `/admin/requests` แสดงแค่จำนวนคนขอ ไม่แสดงอีเมล; ดูคิวใน Claude Code ด้วย `node scripts/list-requests.mjs` แล้วเลือกรัน `/research-stock` เอง (ไม่รันอัตโนมัติ)
 - **ไม่เก็บ IP ของผู้ใช้** (privacy) — คอลัมน์ `access_logs.ip` ถูกลบทิ้งพร้อมข้อมูลเก่าแล้ว (migration ใน `schema.mjs`) อย่าเพิ่มกลับ; log เก็บแค่อีเมล / เหตุการณ์ / หน้า / user-agent
 - หุ้นที่ฉันติดตาม (`/watchlist`): ตาราง `watchlist` (email, ticker) ผูกกับอีเมลเหมือนกัน — **ห้ามใส่ใน `export-db.mjs` และห้ามห่อด้วย `lib/cached.ts`** (ต่างกันรายคน + ต้องเห็นผลทันทีหลังกด ☆) โค้ดอยู่ `lib/watchlist.ts` + server action `app/watchlist/actions.ts` ที่เอาอีเมลจาก session เท่านั้น
 - env ที่ต้องมี (local + Vercel): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`

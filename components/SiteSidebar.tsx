@@ -125,6 +125,7 @@ export default function SiteSidebar({
         <div className="menu-section">
           <div className="menu-heading">ของฉัน</div>
           {item("/watchlist", "หุ้นที่ฉันติดตาม", "หุ้นที่กด ☆ ไว้ + ผลทบทวนล่าสุด")}
+          {item("/request", "ขอให้วิเคราะห์หุ้น", "ส่ง ticker ที่ยังไม่มีในระบบ")}
         </div>
 
         <div className="menu-section">

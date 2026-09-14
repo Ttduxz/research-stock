@@ -62,6 +62,32 @@ export async function addRequest(email: string, ticker: string, note: string | n
   return rs.rowsAffected > 0 ? "added" : "duplicate";
 }
 
+export interface MyRequest {
+  ticker: string;
+  note: string | null;
+  created_at: string;
+  in_system: boolean;
+}
+
+/** คำขอของคนนี้เอง (หน้า /request) — ตัวที่ยังรอวิเคราะห์ขึ้นก่อน แล้วค่อยตัวที่มีรายงานแล้ว */
+export async function listMyRequests(email: string): Promise<MyRequest[]> {
+  if (!requestsAvailable) return [];
+  const rs = await getDb().execute({
+    sql: `SELECT r.ticker, r.note, r.created_at,
+                 EXISTS (SELECT 1 FROM stocks s WHERE s.ticker = r.ticker) AS in_system
+          FROM stock_requests r
+          WHERE r.email = ?
+          ORDER BY in_system ASC, r.created_at DESC`,
+    args: [norm(email)],
+  });
+  return rs.rows.map((r) => ({
+    ticker: String(r.ticker),
+    note: r.note == null ? null : String(r.note),
+    created_at: String(r.created_at),
+    in_system: Number(r.in_system) === 1,
+  }));
+}
+
 /** สรุปคำขอราย ticker (ไม่มีอีเมล) — ตัวที่ยังไม่ถูกวิเคราะห์และมีคนขอเยอะขึ้นก่อน */
 export async function listRequestSummary(): Promise<RequestSummary[]> {
   if (!requestsAvailable) return [];

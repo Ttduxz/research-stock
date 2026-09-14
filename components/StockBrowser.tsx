@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import VerdictBadge from "@/components/VerdictBadge";
-import RequestStockForm from "@/components/RequestStockForm";
 import type { StockOverview } from "@/lib/db";
 
 /** หน้าแรก: กล่องค้นหา + รายการหุ้นแบ่งตามกลุ่มอุตสาหกรรม กรองแบบ client-side (รายชื่อหุ้นเริ่มยาวขึ้นเรื่อยๆ) */
@@ -58,9 +57,13 @@ export default function StockBrowser({
 
       {totalShown === 0 ? (
         <div className="empty-state">
-          ไม่พบหุ้นที่ตรงกับคำค้น &quot;{query}&quot; — ถ้าเป็น ticker ที่อยากให้วิเคราะห์ ส่งคำขอได้เลย
-          {/* key = คำค้น: พิมพ์ค้นใหม่แล้วฟอร์มเริ่มใหม่พร้อม ticker ล่าสุด ไม่ค้างข้อความตอบกลับของคำขอก่อน */}
-          <RequestStockForm key={query} defaultTicker={query.trim().toUpperCase()} />
+          ไม่พบหุ้นที่ตรงกับคำค้น &quot;{query}&quot;
+          <div className="empty-request">
+            {/* ฟอร์มขออยู่ที่เมนู "ขอให้วิเคราะห์หุ้น" — ส่ง ticker ที่พิมพ์ค้นไปเติมให้ */}
+            <Link href={`/request?ticker=${encodeURIComponent(query.trim().toUpperCase())}`}>
+              ขอให้วิเคราะห์ {query.trim().toUpperCase()} →
+            </Link>
+          </div>
         </div>
       ) : (
         filtered.map((sec) => (
