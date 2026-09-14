@@ -4,10 +4,10 @@
 
 ## โครงสร้าง
 
-- `app/` — Next.js (App Router) หน้าเว็บอ่านอย่างเดียว: `/` รายชื่อหุ้น, `/stock/[ticker]` รายละเอียด, `/insights` + `/insights/[slug]` รายงาน hint, `/best-price` จัดอันดับหุ้นที่ราคาน่าสนใจที่สุด (คำนวณจาก `lib/ranking.ts` — ไม่มีข้อมูลใหม่ ใช้เฉพาะที่มีใน DB)
+- `app/` — Next.js (App Router) หน้าเว็บอ่านอย่างเดียว: `/` รายชื่อหุ้น, `/stock/[ticker]` รายละเอียด, `/insights` + `/insights/[slug]` รายงาน hint, `/best-price` จัดอันดับหุ้นที่ราคาน่าสนใจที่สุด (คำนวณจาก `lib/ranking.ts` — ไม่มีข้อมูลใหม่ ใช้เฉพาะที่มีใน DB), `/track-record` ทฤษฎีแม่นแค่ไหน (สถิติจาก `thesis_checks` ผ่าน `lib/track-record.ts` — ไม่ใช้ราคา; risk นับแยกเพราะ risk ที่ "ยืนยัน" คือเรื่องร้ายเกิดจริง) + การ์ด "เคยบอกว่าถ้า → จะส่งผล / ตอนนี้ เพราะ → ส่งผลให้" ทุกข้อ
 - `lib/db.ts` — client + query ทั้งหมด (Turso ผ่าน env, fallback ไฟล์ `data/stock.db`)
 - `scripts/` — `init-db.mjs` (สร้าง schema), `ingest.mjs` (นำ bundle.json ลง DB), `ingest-hint.mjs` (นำ hint.json ลง DB), `list-hints.mjs` (list hint — กัน dedup ตอนหาต้นทาง 30 วัน / หา exposure ตอนดูย้อนหลังยาว), `get-hint.mjs <slug>` (ดึง hint เดียวแบบเต็ม), `seed-demo.mjs`, `schema.mjs` (นิยาม schema — แก้ที่นี่ที่เดียว)
-- `scripts/` (รอบติดตาม) — `prev-context.mjs <TICKER>` (ความจำของรอบก่อนแบบกระชับ), `price-delta.mjs [--due] [--json]` (ราคาจริงเทียบแผน + เกณฑ์แข็ง ไม่ใช้ agent), `ingest-review.mjs` (บันทึกผลทบทวน + ตรวจความซื่อสัตย์ของ claim), `items.mjs` (คลัง item ระดับ ticker), `archive-items.mjs` / `dedupe-items.mjs` (ดูแลอายุข่าว), `quotes.mjs` (ราคาฝั่ง node)
+- `scripts/` (รอบติดตาม) — `prev-context.mjs <TICKER>` (ความจำของรอบก่อนแบบกระชับ), `price-delta.mjs [--due] [--json]` (ราคาจริงเทียบแผน + เกณฑ์แข็ง ไม่ใช้ agent), `ingest-review.mjs` (บันทึกผลทบทวน + ตรวจความซื่อสัตย์ของ claim + บังคับคำอธิบาย 4 ช่อง `if_md/then_md/because_md/so_md` และ `impact` = good/bad/mixed ต่อหุ้นสำหรับข้อที่รู้ผลแล้ว — สีการ์ด risk ใช้ impact เพราะ risk บางข้อคือ "ความเสี่ยงที่ทฤษฎีจะผิด" ซึ่งเกิดจริงแล้วดีต่อหุ้น เดาจาก status ไม่ได้), `explain-checks.mjs export|export-impact|apply` (เติมคำอธิบาย 4 ช่อง/impact ให้ผลตรวจเก่าที่ยังไม่มี — ใช้แค่ข้อความใน DB, then_md ต้องมาจากทฤษฎีเดิม), `items.mjs` (คลัง item ระดับ ticker), `archive-items.mjs` / `dedupe-items.mjs` (ดูแลอายุข่าว), `quotes.mjs` (ราคาฝั่ง node)
 - `.claude/agents/` — ทีม: `stock-researcher` (research), `stock-analyst` (analyze), `stock-theorist` (theorie), `stock-reviewer` (ทบทวนรายสัปดาห์ — ดูหัวข้อ "รอบติดตาม" ด้านล่าง), `hint-analyst` (วิเคราะห์ hint แยก — ดูหัวข้อ "Hint" ด้านล่าง)
 - `.claude/commands/research-stock.md` — `/research-stock <TICKER>` รัน pipeline เต็ม (รวมขั้นเช็ค hint)
 - `.claude/commands/review-stock.md` / `review-week.md` — `/review-stock <TICKER>` รอบติดตาม 1 ตัว, `/review-week` ทำคิวทั้งสัปดาห์จบในคำสั่งเดียว (orchestrator ห้ามอ่านไฟล์ JSON เอง ส่งแค่ path ให้ agent — ทำให้ 29 ticker กิน context ~30k จบใน session เดียว)
@@ -73,6 +73,7 @@ npm run review:summary   # สรุปผลรอบทบทวนของ�
 - การเปิดหน้าบันทึกจากฝั่ง browser: `components/PageViewLogger.tsx` → `POST /api/log` (ตัวตนเอาจาก session) ลงตาราง `access_logs`; login/logout บันทึกผ่าน `events` ใน `auth.ts` — โค้ดเขียน/อ่านอยู่ `lib/access-log.ts`
 - **ห้ามย้าย page-view log กลับไปไว้ใน middleware** — production prefetch ลิงก์ที่อยู่ในจอผ่าน middleware ด้วยและ header prefetch ถูกตัดทิ้ง ทำให้ log ปลอมเต็มไปหมด (dev ไม่ prefetch เลยไม่เห็นปัญหา)
 - หน้า `/admin/logs` เห็นเฉพาะอีเมลใน env `ADMIN_EMAILS` (คนอื่นได้ 404)
+- อีเมลใน env `LOG_EXCLUDE_EMAILS` (คั่นด้วย comma) ไม่ถูกบันทึก log เลย — ใช้กันเจ้าของระบบปน log ผู้ใช้จริง
 - `access_logs` **ห้ามใส่ใน `export-db.mjs`** — กันอีเมลผู้ใช้หลุดไปกับ `data/export.json` ที่ commit
 - env ที่ต้องมี (local + Vercel): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`
 

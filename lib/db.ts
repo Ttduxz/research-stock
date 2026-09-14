@@ -238,6 +238,13 @@ export interface ThesisCheck {
   status: string; // confirmed | weakened | broken | too-early
   evidence_md: string | null;
   sources_json: string | null; // [{ title, url, published_at }]
+  /** คำอธิบายภาษาคน 4 ช่อง — null ในแถวที่ยังไม่ได้เติม (หน้าเว็บ fallback ไปแสดง claim/evidence_md ตรงๆ) */
+  if_md?: string | null;
+  then_md?: string | null;
+  because_md?: string | null;
+  so_md?: string | null;
+  /** good | bad | mixed — ผลตรวจนี้ดีหรือร้ายต่อหุ้น (null = too-early หรือแถวเก่า) */
+  impact?: string | null;
   created_at: string;
 }
 
@@ -586,4 +593,94 @@ export async function listThesisChecks(ticker: string): Promise<ThesisCheck[]> {
     args: [t],
   });
   return rs.rows as unknown as ThesisCheck[];
+}
+
+/** ผลตัดสินหนึ่งข้อ + บริบทที่ใช้แยกกลุ่มในหน้า /track-record (ความมั่นใจของทฤษฎีต้นทาง, เซกเตอร์, verdict ตอนตั้ง) */
+export interface TrackRecordRow {
+  ticker: string;
+  claim_type: string;
+  claim: string;
+  status: string;
+  evidence_md: string | null;
+  sources_json: string | null; // [{ title, url, published_at }] — หลักฐานที่ reviewer ใช้ตัดสิน
+  /** เคยบอกว่าถ้า… */
+  if_md: string | null;
+  /** …จะส่งผล (มาจากทฤษฎีเดิม ไม่ใช่เขียนหลังรู้ผล) */
+  then_md: string | null;
+  /** ตอนนี้เป็นแบบนี้เพราะ… */
+  because_md: string | null;
+  /** …ส่งผลให้ */
+  so_md: string | null;
+  /** good | bad | mixed ต่อหุ้น — ใช้ให้สีการ์ด risk แทนการเดาจาก status */
+  impact: string | null;
+  theory_title: string | null;
+  review_date: string;
+  origin_run_date: string | null;
+  confidence: number | null;
+  sector: string | null;
+  verdict: string | null;
+}
+
+/**
+ * ผลตัดสิน **ล่าสุด** ของทุก claim ทั้งระบบ — claim เดียวกันอาจถูกตัดสินหลายรอบ นับแค่รอบใหม่สุด
+ * ไม่งั้นข้อที่ถูกทบทวนบ่อยจะมีน้ำหนักเกินจริงในสถิติ
+ */
+export async function listTrackRecordRows(): Promise<TrackRecordRow[]> {
+  const latestOnly = (rows: TrackRecordRow[]) => {
+    const seen = new Set<string>();
+    return rows.filter((r) => {
+      const key = `${r.ticker}|${r.claim.replace(/\s+/g, " ").trim()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    if (!s?.thesis_checks || !s.reviews) return [];
+    const reviewDate = new Map(s.reviews.map((r) => [r.id, r.review_date]));
+    const rows = s.thesis_checks
+      .map((c): TrackRecordRow => {
+        const run = s.research_runs.find((r) => r.id === c.origin_run_id);
+        const theory = s.theories.find((t) => t.run_id === c.origin_run_id && t.title === c.theory_title);
+        return {
+          ticker: c.ticker,
+          claim_type: c.claim_type,
+          claim: c.claim,
+          status: c.status,
+          evidence_md: c.evidence_md,
+          sources_json: c.sources_json,
+          if_md: c.if_md ?? null,
+          then_md: c.then_md ?? null,
+          because_md: c.because_md ?? null,
+          so_md: c.so_md ?? null,
+          impact: c.impact ?? null,
+          theory_title: c.theory_title,
+          review_date: reviewDate.get(c.review_id) ?? "",
+          origin_run_date: run?.run_date ?? null,
+          confidence: theory?.confidence ?? null,
+          sector: s.stocks.find((x) => x.ticker === c.ticker)?.sector ?? null,
+          verdict: s.analyses.find((a) => a.run_id === c.origin_run_id)?.verdict ?? null,
+        };
+      })
+      .sort((a, b) => b.review_date.localeCompare(a.review_date));
+    return latestOnly(rows);
+  }
+
+  const rs = await getDb().execute(`
+    SELECT c.ticker, c.claim_type, c.claim, c.status, c.evidence_md, c.sources_json, c.theory_title,
+           c.if_md, c.then_md, c.because_md, c.so_md, c.impact,
+           rv.review_date, r.run_date AS origin_run_date,
+           (SELECT t.confidence FROM theories t
+             WHERE t.run_id = c.origin_run_id AND t.title = c.theory_title LIMIT 1) AS confidence,
+           s.sector,
+           (SELECT a.verdict FROM analyses a WHERE a.run_id = c.origin_run_id LIMIT 1) AS verdict
+    FROM thesis_checks c
+    JOIN reviews rv ON rv.id = c.review_id
+    LEFT JOIN research_runs r ON r.id = c.origin_run_id
+    LEFT JOIN stocks s ON s.ticker = c.ticker
+    ORDER BY rv.review_date DESC, c.review_id DESC, c.id ASC
+  `);
+  return latestOnly(rs.rows as unknown as TrackRecordRow[]);
 }

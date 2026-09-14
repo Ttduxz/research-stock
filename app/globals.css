@@ -1819,3 +1819,83 @@ body::after {
   color: var(--text-faint);
   font-size: 13px;
 }
+
+/* ---- /track-record: สถิติความแม่นของทฤษฎี ---- */
+.trk-lead { color: var(--text-dim); font-size: 14.5px; max-width: 74ch; margin: 6px 0 0; }
+.trk-tbl { min-width: 520px; }
+.trk-bar-cell { width: 34%; }
+.trk-bar { display: flex; height: 10px; border-radius: 3px; overflow: hidden; background: var(--bg-sunken); min-width: 120px; }
+.trk-seg { height: 100%; }
+.trk-seg.ck-confirmed { background: var(--green); }
+.trk-seg.ck-weakened { background: var(--yellow); }
+.trk-seg.ck-broken { background: var(--red); }
+.trk-seg.ck-early { background: var(--border); }
+.trk-thin { color: var(--text-faint); }
+.trk-thin-mark { margin-left: 2px; }
+.trk-meta { font-size: 12.5px; color: var(--text-faint); }
+
+/* /track-record แบบอ่านง่าย: การ์ดตอบคำถาม + รายละเอียดพับไว้ */
+.trk-young { font-size: 13.5px; color: var(--text-dim); margin: -12px 0 22px; }
+.trk-answers { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-bottom: 8px; }
+.trk-answer { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--text-faint); border-radius: var(--radius); padding: 16px 20px; }
+.trk-answer.trk-good { border-left-color: var(--green); }
+.trk-answer.trk-warn { border-left-color: var(--yellow); }
+.trk-answer.trk-bad { border-left-color: var(--red); }
+.trk-q { font-size: 13px; color: var(--text-faint); margin-bottom: 8px; }
+.trk-a { display: flex; gap: 10px; align-items: baseline; font-size: 17px; line-height: 1.5; font-weight: 600; }
+.trk-a a { color: inherit; }
+.trk-icon { flex: none; width: 22px; height: 22px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 13px; font-weight: 700; color: var(--bg); background: var(--text-faint); transform: translateY(2px); }
+.trk-good .trk-icon { background: var(--green); }
+.trk-warn .trk-icon { background: var(--yellow); }
+.trk-bad .trk-icon { background: var(--red); }
+.trk-big { font-size: 22px; }
+.trk-a-detail { margin-top: 8px; font-size: 13px; color: var(--text-dim); line-height: 1.7; }
+.trk-dots { display: flex; gap: 4px; margin: 2px 0 8px; }
+.trk-dots span { width: 12px; height: 12px; border-radius: 50%; background: var(--bg-sunken); border: 1px solid var(--border); }
+.trk-dots span.on { background: var(--green); border-color: var(--green); }
+.trk-more { margin-top: 14px; }
+.trk-more > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+.trk-detail { margin-top: 46px; border-top: 1px solid var(--rule); padding-top: 18px; }
+.trk-detail > summary { font-size: 16px; font-weight: 600; }
+.trk-howto { font-size: 13.5px; color: var(--text-dim); line-height: 1.9; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; margin: 16px 0; }
+.trk-h3 { margin: 28px 0 0; font-size: 16px; }
+
+/* /track-record: การ์ด "เคยพูดว่า → ผล → เพราะอะไร" อ่านจบในใบเดียว */
+.trk-feed { margin-top: 14px; }
+.trk-select { background: var(--bg-card); color: var(--text); border: 1px solid var(--border-strong); border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 14px; }
+.trk-item { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--text-faint); border-radius: var(--radius); padding: 16px 20px; margin-top: 12px; }
+.trk-item.trk-good { border-left-color: var(--green); }
+.trk-item.trk-warn { border-left-color: var(--yellow); }
+.trk-item.trk-bad { border-left-color: var(--red); }
+.trk-item-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; }
+.trk-ticker { font-family: var(--font-data); font-weight: 600; font-size: 15px; }
+.trk-meta { font-size: 12.5px; color: var(--text-faint); }
+.trk-step { display: block; font-size: 12.5px; color: var(--text-faint); margin-bottom: 4px; }
+.trk-said, .trk-why { margin-top: 12px; }
+.trk-said p { margin: 0; padding: 10px 14px; background: var(--bg-sunken); border-radius: 8px; line-height: 1.75; }
+.trk-why p { margin: 0; line-height: 1.75; color: var(--text); }
+.trk-outcome { font-size: 13.5px; }
+.trk-good .trk-outcome { color: var(--green); }
+.trk-warn .trk-outcome { color: var(--yellow); }
+.trk-bad .trk-outcome { color: var(--red); }
+.trk-sources { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); display: flex; flex-wrap: wrap; gap: 4px 12px; }
+.trk-item-foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); font-size: 12.5px; color: var(--text-faint); }
+/* หน้านี้ไม่ใช้ .nav-slider — ปุ่มที่เลือกต้องมีพื้นของตัวเอง ไม่งั้นเหลือแค่สีตัวอักษรจางๆ */
+.trk-feed .filter-pills { margin: 4px 0 10px; }
+.trk-feed .filter-pills button.active { background: var(--accent-soft); border-color: var(--accent); }
+
+/* การ์ด 4 ขั้น: ถ้า → จะส่งผล / ตอนนี้ เพราะ → ส่งผลให้ */
+.trk-date { font-family: var(--font-data); font-size: 11.5px; }
+.trk-said p + .trk-arrow, .trk-why p + .trk-arrow { margin-top: 8px; }
+.trk-said p ~ p { background: transparent; padding: 0 14px; }
+.trk-arrow { padding-left: 14px; }
+.trk-why > p { padding-left: 14px; }
+.trk-orig { margin-top: 10px; font-size: 13px; color: var(--text-dim); }
+.trk-orig > summary { cursor: pointer; color: var(--text-faint); }
+.trk-orig p { margin: 8px 0 0; line-height: 1.7; }
+.trk-orig-claim { padding: 8px 12px; border-left: 2px solid var(--rule); }
+/* ป้าย "ผลต่อหุ้น" — แยกจากสีการ์ด: การ์ดข้อสมมุติบอกความแม่น ป้ายนี้บอกว่าดีหรือร้ายต่อหุ้น */
+.trk-impact { margin-left: auto; font-size: 12px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--border-strong); color: var(--text-dim); white-space: nowrap; }
+.trk-impact.trk-good { color: var(--green); border-color: rgba(76, 192, 111, 0.4); background: var(--green-wash); }
+.trk-impact.trk-bad { color: var(--red); border-color: rgba(240, 104, 94, 0.4); background: var(--red-wash); }
+.trk-impact.trk-warn { color: var(--yellow); border-color: rgba(219, 164, 60, 0.4); background: var(--yellow-wash); }

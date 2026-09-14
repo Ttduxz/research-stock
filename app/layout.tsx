@@ -59,6 +59,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <nav className="site-nav">
                 <Link href="/best-price">ราคาน่าสนใจ</Link>
                 <Link href="/insights">Insights</Link>
+                <Link href="/track-record">Track Record</Link>
                 <Link href="/donate" className="nav-donate">Donate</Link>
                 {isAdmin(email) && <Link href="/admin/logs">Log</Link>}
                 <form

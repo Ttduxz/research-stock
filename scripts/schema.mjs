@@ -154,6 +154,15 @@ export const MIGRATIONS = [
   // index นี้อยู่ท้าย MIGRATIONS ไม่ใช่ใน SCHEMA เพราะอ้างคอลัมน์ status ที่เพิ่งถูก ALTER เพิ่มด้านบน
   `ALTER TABLE reviews ADD COLUMN action_md TEXT`,
   `ALTER TABLE reviews ADD COLUMN plan_status TEXT`,
+  // คำอธิบาย 4 ช่องของผลตัดสินแต่ละข้อ (หน้า /track-record): "เคยบอกว่าถ้า X → จะส่งผล Y / ตอนนี้ Z เพราะ → ส่งผลให้ U"
+  // claim ยังเป็นข้อความเดิมตรงตัวเหมือนเดิม — 4 ช่องนี้เป็นแค่ชั้นอธิบายภาษาคน then_md ต้องมาจากทฤษฎีเดิมเท่านั้น
+  `ALTER TABLE thesis_checks ADD COLUMN if_md TEXT`,
+  `ALTER TABLE thesis_checks ADD COLUMN then_md TEXT`,
+  `ALTER TABLE thesis_checks ADD COLUMN because_md TEXT`,
+  `ALTER TABLE thesis_checks ADD COLUMN so_md TEXT`,
+  // ผลตรวจนี้ดีหรือร้ายต่อหุ้น (good | bad | mixed) — เดาจาก claim_type + status ไม่ได้ เพราะ risk บางข้อคือ
+  // "ความเสี่ยงที่ทฤษฎีจะผิด" (เช่นทฤษฎีมองลบ) ซึ่งถ้าเกิดจริงกลับดีต่อหุ้น — null ได้เฉพาะ too-early
+  `ALTER TABLE thesis_checks ADD COLUMN impact TEXT`,
   `CREATE INDEX IF NOT EXISTS idx_items_ticker ON research_items(ticker, status)`,
 ];
 

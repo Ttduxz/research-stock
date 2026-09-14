@@ -42,6 +42,7 @@ argument-hint: <TICKER> [วันที่ YYYY-MM-DD ถ้าไม่ใช�
    - ถ้าขั้น 3 มีเกณฑ์แข็งยกธงไว้ ให้บอก reviewer ว่าต้องอธิบายในสรุปว่าเรื่องนั้นกระทบทฤษฎีหรือไม่อย่างไร (ห้ามเงียบ) และใส่ `"rule"` ไว้ใน `escalated_by`
    - **ห้ามส่ง research ทั้งก้อนเก่าให้ reviewer** — มันต้องตัดสินจากทฤษฎีเดิม + ของใหม่เท่านั้น
    - ย้ำให้ reviewer ตอบ `plan_status` + `action_md` โดยเทียบราคาปัจจุบันกับ `entry_plan.tranches` ใน prev-context จริงๆ (ingest จะปฏิเสธไฟล์ที่ไม่มี 2 ฟิลด์นี้)
+   - ทุก check ต้องมีคำอธิบาย 4 ช่อง `if_md` / `then_md` / `because_md` / `so_md` (so_md เว้นได้เฉพาะ too-early) สำหรับหน้า `/track-record` — `then_md` ต้องมาจากทฤษฎีเดิมเท่านั้น (ingest ปฏิเสธไฟล์ที่ขาด)
 
 6. **บันทึกลง DB**:
    ```

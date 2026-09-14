@@ -16,7 +16,8 @@
  *   "checks": [{ "claim": "<ข้อความเดิมแบบคัดลอกตรงตัว>",
  *                "claim_type": "assumption|catalyst|risk|invalidation|target",
  *                "theory_title": "...", "status": "confirmed|weakened|broken|too-early",
- *                "evidence_md": "...", "sources": [{ "title", "url", "published_at" }] }],
+ *                "evidence_md": "...", "sources": [{ "title", "url", "published_at" }],
+ *                "if_md": "...", "then_md": "...", "because_md": "...", "so_md": "... | null ถ้า too-early" }],
  *   "supersedes": [{ "old": { "url": "..." }, "new_url": "..." }]
  * }
  *
@@ -71,6 +72,15 @@ const checks = review.checks ?? [];
 for (const c of checks) {
   if (!c.claim?.trim()) fail("มี check ที่ไม่มี claim");
   if (!STATUSES.includes(c.status)) fail(`check "${c.claim.slice(0, 40)}" status ต้องเป็น: ${STATUSES.join(", ")}`);
+  // คำอธิบาย 4 ช่องสำหรับหน้า /track-record — ไม่มีแล้วคนอ่านต้องไปเปิดทฤษฎี/ข่าวเองเพื่อเข้าใจว่าข้อนี้หมายถึงอะไร
+  const missing = ["if_md", "then_md", "because_md", ...(c.status === "too-early" ? [] : ["so_md"])].filter(
+    (f) => !String(c[f] ?? "").trim()
+  );
+  if (missing.length > 0)
+    fail(`check "${c.claim.slice(0, 40)}" ขาด ${missing.join(", ")} — ดูหัวข้อ "อธิบายแต่ละข้อเป็น 4 ช่อง" ใน stock-reviewer.md`);
+  // สีการ์ด risk เดาจาก status ไม่ได้ (บาง risk คือความเสี่ยงที่ทฤษฎีจะผิด เกิดจริงแล้วดีต่อหุ้น) จึงต้องระบุตรงๆ
+  if (c.status !== "too-early" && !["good", "bad", "mixed"].includes(c.impact))
+    fail(`check "${c.claim.slice(0, 40)}" ต้องมี impact = good | bad | mixed (ผลตรวจนี้ดีหรือร้ายต่อหุ้น)`);
 }
 
 const db = openDb();
@@ -170,8 +180,9 @@ try {
     for (const c of checks) {
       await tx.execute({
         sql: `INSERT INTO thesis_checks
-                (ticker, review_id, origin_run_id, theory_title, claim_type, claim, status, evidence_md, sources_json)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (ticker, review_id, origin_run_id, theory_title, claim_type, claim, status, evidence_md, sources_json,
+                 if_md, then_md, because_md, so_md, impact)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         args: [
           ticker,
           reviewId,
@@ -182,6 +193,11 @@ try {
           c.status,
           c.evidence_md ?? null,
           j(c.sources ?? null),
+          c.if_md.trim(),
+          c.then_md.trim(),
+          c.because_md.trim(),
+          c.so_md?.trim() || null,
+          c.status === "too-early" ? null : c.impact,
         ],
       });
     }
