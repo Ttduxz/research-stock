@@ -465,6 +465,66 @@ export async function listHints(): Promise<HintSummary[]> {
   return plainRows<HintSummary>(rs);
 }
 
+const INSIGHT_LINK = /\/insights\/([a-z0-9-]+)/g;
+
+function collectInsightSlugs(texts: (string | null | undefined)[]): string[] {
+  const out = new Set<string>();
+  for (const text of texts) {
+    for (const m of (text ?? "").matchAll(INSIGHT_LINK)) out.add(m[1]);
+  }
+  return [...out];
+}
+
+/**
+ * ticker → slug ของ hint ที่รายงานฉบับล่าสุดอ้างถึง (ลิงก์ /insights/<slug> ในสรุป/แผน/บทวิเคราะห์/ทฤษฎี)
+ * เงื่อนไขเดียวกับ scripts/hint-exposure.mjs — ใช้หน้า /watchlist บอกว่าหุ้นตัวไหนถูกปรับตาม insight อะไรแล้ว
+ * คืนแค่ map เล็กๆ — ข้อความเต็มของทุกรายงานอ่านแล้วทิ้งในฟังก์ชัน ไม่ส่งออกไปหน้าเว็บ/cache
+ */
+export async function listLatestRunInsightSlugs(): Promise<Record<string, string[]>> {
+  const out: Record<string, string[]> = {};
+  if (useSnapshot) {
+    const s = await loadSnapshot();
+    for (const stock of s?.stocks ?? []) {
+      const run = latestRunOf(s!.research_runs, stock.ticker);
+      if (!run) continue;
+      const analysis = s!.analyses.find((a) => a.run_id === run.id);
+      const theories = s!.theories.filter((t) => t.run_id === run.id);
+      const slugs = collectInsightSlugs([
+        run.summary_md,
+        run.entry_plan_json,
+        analysis?.content_md,
+        analysis?.key_points,
+        ...theories.flatMap((t) => [t.thesis_md, t.assumptions, t.catalysts, t.risks, t.scenarios]),
+      ]);
+      if (slugs.length > 0) out[stock.ticker] = slugs;
+    }
+    return out;
+  }
+  const rs = await getDb().execute(`
+    SELECT r.ticker,
+           r.summary_md, r.entry_plan_json,
+           a.content_md, a.key_points,
+           (SELECT GROUP_CONCAT(COALESCE(t.thesis_md, '') || ' ' || COALESCE(t.assumptions, '') || ' ' ||
+                                COALESCE(t.catalysts, '') || ' ' || COALESCE(t.risks, '') || ' ' ||
+                                COALESCE(t.scenarios, ''), ' ')
+            FROM theories t WHERE t.run_id = r.id) AS theories_text
+    FROM research_runs r
+    LEFT JOIN analyses a ON a.run_id = r.id
+    WHERE r.id = (SELECT id FROM research_runs WHERE ticker = r.ticker ORDER BY run_date DESC, id DESC LIMIT 1)
+  `);
+  for (const row of rs.rows as unknown as Record<string, string | null>[]) {
+    const slugs = collectInsightSlugs([
+      row.summary_md,
+      row.entry_plan_json,
+      row.content_md,
+      row.key_points,
+      row.theories_text,
+    ]);
+    if (slugs.length > 0) out[String(row.ticker)] = slugs;
+  }
+  return out;
+}
+
 /** ticker → sector ของหุ้นทุกตัว (ใช้อนุมาน segment ของ hint ในหน้า /insights — ดู lib/segments.ts) */
 export async function listStockSectors(): Promise<Record<string, string | null>> {
   const out: Record<string, string | null> = {};

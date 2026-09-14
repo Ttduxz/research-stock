@@ -20,6 +20,11 @@ export const listRuns = unstable_cache(db.listRuns, ["db:listRuns"], opts);
 export const getRunBundle = unstable_cache(db.getRunBundle, ["db:getRunBundle"], opts);
 export const listHints = unstable_cache(db.listHints, ["db:listHints"], opts);
 export const listStockSectors = unstable_cache(db.listStockSectors, ["db:listStockSectors"], opts);
+export const listLatestRunInsightSlugs = unstable_cache(
+  db.listLatestRunInsightSlugs,
+  ["db:listLatestRunInsightSlugs"],
+  opts
+);
 export const getHint = unstable_cache(db.getHint, ["db:getHint"], opts);
 export const listLatestSnapshots = unstable_cache(db.listLatestSnapshots, ["db:listLatestSnapshots"], opts);
 export const listActiveItems = unstable_cache(db.listActiveItems, ["db:listActiveItems"], opts);

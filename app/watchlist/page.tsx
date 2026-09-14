@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
-import { listStocksWithLatest, listLatestReviews } from "@/lib/cached";
+import { listStocksWithLatest, listLatestReviews, listHints, listLatestRunInsightSlugs } from "@/lib/cached";
 import { listWatchTickers, watchlistAvailable } from "@/lib/watchlist";
 import { PLAN_STATUS_LABEL } from "@/lib/plan-status";
-import type { Review, StockOverview } from "@/lib/db";
+import { isActiveHint } from "@/lib/hint-status";
+import type { HintSummary, Review, StockOverview } from "@/lib/db";
 import VerdictBadge from "@/components/VerdictBadge";
+import HintBadge from "@/components/HintBadge";
 import WatchButton from "@/components/WatchButton";
 import Chevron from "@/components/Chevron";
 
@@ -34,8 +36,19 @@ const GROUPS: { key: string; open: boolean }[] = [
 const groupLabel = (key: string) => (key === "none" ? "ยังไม่มีรอบทบทวน" : PLAN_STATUS_LABEL[key] ?? key);
 
 /** แถวย่อหนึ่งบรรทัด กดแล้วกางข้อความจากรอบทบทวน — ปุ่ม ★ อยู่ในแถวแต่กดแล้วไม่กางแถว (WatchButton กัน default) */
-function StockRow({ stock, review }: { stock: StockOverview; review: Review | null }) {
+function StockRow({
+  stock,
+  review,
+  insights,
+}: {
+  stock: StockOverview;
+  review: Review | null;
+  insights: HintSummary[];
+}) {
   const price = review?.price_at_review ?? stock.latest_price;
+  // รายงานถูกทำใหม่หลังรอบทบทวน (เช่น ปรับตาม insight ใหม่) — ข้อความ action_md ด้านล่างเป็นของก่อนหน้านั้น
+  const runAfterReview =
+    !!review && !!stock.latest_run_date && stock.latest_run_date > review.review_date;
   return (
     <details className={`wl-row ps-${review?.plan_status ?? "none"}`}>
       <summary className="wl-sum">
@@ -43,6 +56,17 @@ function StockRow({ stock, review }: { stock: StockOverview; review: Review | nu
         <span className="wl-id">
           <span className="wl-ticker">{stock.ticker}</span>
           <span className="wl-name">{stock.name}</span>
+          {/* insight ที่รายงานล่าสุด factor เข้าไปแล้ว — โชว์โดยไม่ต้องกางแถว (ในแถบนี้เป็น span ไม่ใช่ลิงก์ กดแล้วกางแถวตามปกติ) */}
+          {insights.length > 0 && (
+            <span className="wl-insights">
+              {insights.slice(0, 2).map((h) => (
+                <span key={h.slug} className={`wl-insight dir-${h.direction ?? "mixed"}`} title={h.title}>
+                  {h.title}
+                </span>
+              ))}
+              {insights.length > 2 && <span className="wl-insight-more">+{insights.length - 2}</span>}
+            </span>
+          )}
         </span>
         {stock.latest_verdict && <VerdictBadge verdict={stock.latest_verdict} />}
         {price != null && (
@@ -64,11 +88,28 @@ function StockRow({ stock, review }: { stock: StockOverview; review: Review | nu
       </summary>
 
       <div className="wl-body">
+        {insights.length > 0 && (
+          <ul className="wl-insight-list">
+            {insights.map((h) => (
+              <li key={h.slug}>
+                <HintBadge direction={h.direction} magnitude={h.magnitude} />
+                <Link href={`/insights/${h.slug}`}>{h.title}</Link>
+              </li>
+            ))}
+          </ul>
+        )}
         {review ? (
           <>
+            {runAfterReview && (
+              <p className="wl-updated">
+                รายงานทำใหม่เมื่อ {stock.latest_run_date} หลังรอบทบทวน — verdict และแผนเข้าซื้อในรายงานเต็มเป็นฉบับใหม่แล้ว
+                ข้อความด้านล่างมาจากรอบทบทวนก่อนหน้า
+              </p>
+            )}
             {review.action_md && <p className="wl-action">{review.action_md}</p>}
             <div className="wl-meta">
               <span>ทบทวนล่าสุด {review.review_date}</span>
+              {stock.latest_run_date && <span>รายงานล่าสุด {stock.latest_run_date}</span>}
               <Link href={`/stock/${stock.ticker}`}>อ่านรายงานเต็ม →</Link>
             </div>
           </>
@@ -91,13 +132,21 @@ export default async function WatchlistPage() {
   const session = await auth();
   const email = session?.user?.email ?? null;
 
-  const [tickers, stocks, reviews] = await Promise.all([
+  const [tickers, stocks, reviews, hints, insightSlugs] = await Promise.all([
     email ? listWatchTickers(email) : Promise.resolve([] as string[]),
     listStocksWithLatest(),
     listLatestReviews(),
+    listHints(),
+    listLatestRunInsightSlugs(),
   ]);
   const stockBy = new Map(stocks.map((s) => [s.ticker, s]));
   const reviewBy = new Map(reviews.map((r) => [r.ticker, r]));
+  // เฉพาะ insight ที่ยังมีผลอยู่ — เรียงใหม่สุดก่อนตาม listHints() (เรื่องที่ปิดแล้วไม่ควรดูเหมือนยังกระทบหุ้น)
+  const activeHints = hints.filter((h) => isActiveHint(h.status));
+  const insightsOf = (ticker: string) => {
+    const slugs = new Set(insightSlugs[ticker] ?? []);
+    return activeHints.filter((h) => slugs.has(h.slug));
+  };
   // หุ้นที่ถูกลบออกจากระบบไปแล้วแต่ยังค้างในรายการติดตาม — ข้ามไป ไม่ทำให้หน้าพัง
   const items = tickers
     .map((t) => ({ stock: stockBy.get(t), review: reviewBy.get(t) ?? null }))
@@ -144,7 +193,7 @@ export default async function WatchlistPage() {
             </summary>
             <div className="wl-rows">
               {g.items.map(({ stock, review }) => (
-                <StockRow key={stock.ticker} stock={stock} review={review} />
+                <StockRow key={stock.ticker} stock={stock} review={review} insights={insightsOf(stock.ticker)} />
               ))}
             </div>
           </details>

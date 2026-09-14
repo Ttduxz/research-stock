@@ -2110,6 +2110,20 @@ body::after {
 .wl-action { margin: 10px 0 0; line-height: 1.75; }
 .wl-meta { margin-top: 8px; font-size: 12.5px; color: var(--text-faint); display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .wl-meta a { color: var(--accent); }
+/* insight ที่รายงานล่าสุด factor เข้าไปแล้ว: ชิปสั้นในแถวย่อ (ตัดคำ) + รายการเต็มพร้อมลิงก์ตอนกางแถว — สีตามทิศทางของ hint */
+.wl-insights { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin-top: 3px; min-width: 0; }
+.wl-insight { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11.5px; line-height: 1.5; padding: 0 7px; border: 1px solid var(--border); border-radius: 999px; color: var(--text-dim); }
+.wl-insight.dir-negative { color: var(--red); border-color: rgba(240, 104, 94, 0.4); background: var(--red-wash); }
+.wl-insight.dir-positive { color: var(--green); border-color: rgba(76, 192, 111, 0.4); background: var(--green-wash); }
+.wl-insight.dir-mixed { color: var(--accent); border-color: rgba(95, 157, 240, 0.4); background: var(--accent-wash); }
+.wl-insight-more { font-size: 11.5px; color: var(--text-faint); }
+.wl-insight-list { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; }
+.wl-insight-list li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; font-size: 13.5px; line-height: 1.6; }
+.wl-insight-list a { color: var(--accent); }
+.wl-updated { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--yellow); }
+@media (max-width: 640px) {
+  .wl-insight { max-width: 100%; }
+}
 
 /* มือถือ: ไม่ซ่อนชื่ออีกแล้ว — ticker + ชื่อเต็มความกว้างบรรทัดแรก, verdict · ราคา · ★ · ลูกศร บรรทัดสอง */
 @media (max-width: 640px) {
