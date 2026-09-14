@@ -131,13 +131,13 @@ function ClaimItem({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
   const waiting = r.status === "too-early";
   return (
     <article className={`trk-item trk-${o.tone}`} data-group={feedGroup(r)} data-ticker={r.ticker} hidden={hidden}>
+      {/* ไม่ต้องมีชื่อหุ้นซ้ำ — การ์ดอยู่ในกลุ่มของหุ้นตัวนั้นอยู่แล้ว (ดู trk-stock ใน TrackRecordPage) */}
       <header className="trk-item-head">
-        <Link href={`/stock/${r.ticker}`} className="trk-ticker">
-          {r.ticker}
-        </Link>
+        <span className="trk-result">
+          {TONE_DOT[o.tone]} {o.text}
+        </span>
         <span className="trk-meta">
           {r.claim_type === "risk" ? "เตือนความเสี่ยง" : r.claim_type === "catalyst" ? "ทายว่าจะมีตัวกระตุ้น" : "ข้อสมมุติ"}
-          {r.confidence != null && <> · มั่นใจ {r.confidence}</>}
         </span>
         {r.impact && (
           <span className={`trk-impact trk-${IMPACT_TONE[r.impact] ?? "unknown"}`}>
@@ -148,7 +148,11 @@ function ClaimItem({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
 
       <div className="trk-said">
         <span className="trk-step">
-          💬 เคยบอกว่า{explained ? " ถ้า" : ""} <span className="trk-date">({r.origin_run_date ?? "?"})</span>
+          💬 เคยบอกว่า{explained ? " ถ้า" : ""}{" "}
+          <span className="trk-date">
+            ({r.origin_run_date ?? "?"}
+            {r.confidence != null && <> · มั่นใจ {r.confidence}</>})
+          </span>
         </span>
         <p>
           <InlineMarkdown text={explained ? r.if_md : r.claim} />
@@ -214,11 +218,10 @@ function ClaimItem({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
         </details>
       )}
 
-      {r.theory_title && (
-        <footer className="trk-item-foot">
-          จากทฤษฎี &ldquo;{r.theory_title}&rdquo; — <Link href={`/stock/${r.ticker}`}>อ่านรายงานเต็ม →</Link>
-        </footer>
-      )}
+      <footer className="trk-item-foot">
+        {r.theory_title && <>จากทฤษฎี &ldquo;{r.theory_title}&rdquo; — </>}
+        <Link href={`/stock/${r.ticker}`}>อ่านรายงาน {r.ticker} ฉบับเต็ม →</Link>
+      </footer>
     </article>
   );
 }
@@ -432,9 +435,30 @@ export default async function TrackRecordPage() {
           </h2>
           <p className="trk-lead">ทุกข้อที่เคยทำนายไว้ พร้อมผลตรวจและเหตุผล — เลือกดูตามผล หรือเลือกหุ้นตัวเดียว</p>
           <ClaimFeed tabs={FEED_TABS} items={rows.map((r) => ({ group: feedGroup(r), ticker: r.ticker }))} defaultTab={defaultTab}>
-            {rows.map((r) => (
-              <ClaimItem key={`${r.ticker}-${r.claim}`} r={r} hidden={feedGroup(r) !== defaultTab} />
-            ))}
+            {/* จัดกลุ่มตามหุ้นแล้วพับไว้เหลือแค่ชื่อ — หุ้นบางตัวมีหลายสิบข้อ ถ้ากางทุกข้อทีเดียวหน้าจะรก
+                จำนวนข้อ/การซ่อนกลุ่มที่ว่าง คำนวณจากแท็บเริ่มต้นตรงนี้ แล้ว ClaimFeed อัปเดตต่อตอนสลับแท็บ */}
+            {[...new Set(rows.map((r) => r.ticker))].sort().map((ticker) => {
+              const mine = rows.filter((r) => r.ticker === ticker);
+              const n = mine.filter((r) => feedGroup(r) === defaultTab).length;
+              return (
+                <details key={ticker} className="trk-stock" data-stock-group={ticker} hidden={n === 0}>
+                  <summary className="trk-stock-sum">
+                    <span className="trk-ticker">{ticker}</span>
+                    <span className="trk-stock-count" data-stock-count="">
+                      {n} ข้อ
+                    </span>
+                    <span className="trk-chevron" aria-hidden="true">
+                      ▸
+                    </span>
+                  </summary>
+                  <div className="trk-stock-body">
+                    {mine.map((r) => (
+                      <ClaimItem key={`${r.ticker}-${r.claim}`} r={r} hidden={feedGroup(r) !== defaultTab} />
+                    ))}
+                  </div>
+                </details>
+              );
+            })}
           </ClaimFeed>
 
           <details className="trk-more trk-detail">

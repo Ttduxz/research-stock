@@ -1899,3 +1899,24 @@ body::after {
 .trk-impact.trk-good { color: var(--green); border-color: rgba(76, 192, 111, 0.4); background: var(--green-wash); }
 .trk-impact.trk-bad { color: var(--red); border-color: rgba(240, 104, 94, 0.4); background: var(--red-wash); }
 .trk-impact.trk-warn { color: var(--yellow); border-color: rgba(219, 164, 60, 0.4); background: var(--yellow-wash); }
+
+/* รายการผลตรวจจัดกลุ่มตามหุ้น พับไว้เหลือแค่ชื่อหุ้น — หุ้นที่มีหลายสิบข้อจะได้ไม่ท่วมหน้า */
+.trk-stocks { margin-top: 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); overflow: hidden; }
+.trk-stock + .trk-stock { border-top: 1px solid var(--rule); }
+.trk-stock-sum { display: flex; align-items: center; gap: 12px; list-style: none; cursor: pointer; padding: 11px 18px; transition: background 0.15s ease; }
+.trk-stock-sum::-webkit-details-marker { display: none; }
+.trk-stock-sum::marker { content: ""; }
+.trk-stock-sum:hover { background: var(--bg-hover); }
+.trk-stock-sum:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.trk-stock-count { font-size: 12.5px; color: var(--text-faint); font-family: var(--font-data); }
+/* ลูกศรเดิม 12px เล็กจนคนไม่รู้ว่ากดกางได้ — ขยาย + ใช้ฟอนต์ระบบที่มี glyph ▸ เต็มขนาด */
+.trk-chevron { margin-left: auto; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; font-family: "Segoe UI Symbol", system-ui, sans-serif; font-size: 18px; line-height: 1; color: var(--text-dim); transition: transform 0.18s ease, color 0.15s ease, background 0.15s ease; }
+.trk-stock-sum:hover .trk-chevron { color: var(--accent); background: var(--accent-soft); }
+.trk-stock[open] > .trk-stock-sum .trk-chevron { transform: rotate(90deg); }
+.trk-stock-body { padding: 0 14px 14px; }
+.trk-stock-body > .trk-item:first-child { margin-top: 0; }
+.trk-result { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.trk-good .trk-result { color: var(--green); }
+.trk-warn .trk-result { color: var(--yellow); }
+.trk-bad .trk-result { color: var(--red); }
+.trk-unknown .trk-result { color: var(--text-faint); }

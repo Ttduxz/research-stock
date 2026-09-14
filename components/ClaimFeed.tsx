@@ -10,8 +10,9 @@ export interface FeedTab {
 /**
  * แท็บสลับรายการ "เคยพูดว่า → ผล → เพราะอะไร" ของหน้า /track-record
  *
- * การ์ดทุกใบเรนเดอร์ฝั่ง server มาแล้ว (children ที่มี data-group / data-ticker) ตัวนี้แค่ซ่อน/แสดง
- * — ไม่ต้องส่ง markdown parser ไปฝั่ง browser และ server เป็นคนตัดสินว่าแท็บแรกคืออะไร (ไม่กระพริบตอนโหลด)
+ * การ์ดทุกใบเรนเดอร์ฝั่ง server มาแล้ว จัดกลุ่มตามหุ้นเป็น <details data-stock-group> ที่พับไว้เหลือแค่ชื่อหุ้น
+ * (ถ้าแสดงทุกข้อทีเดียว หุ้นที่มีหลายสิบข้อจะท่วมหน้า) ตัวนี้แค่ซ่อน/แสดงการ์ดตามแท็บ ซ่อนกลุ่มที่ไม่เหลือการ์ด
+ * และอัปเดตจำนวนข้อบนแถบชื่อหุ้น — ไม่ต้องส่ง markdown parser ไปฝั่ง browser
  * ลิงก์ #claims-<tab> จากการ์ดสรุปด้านบนจะเปิดแท็บนั้นให้ทันที
  */
 export default function ClaimFeed({
@@ -51,8 +52,18 @@ export default function ClaimFeed({
   }, [tabs]);
 
   useEffect(() => {
-    listRef.current?.querySelectorAll<HTMLElement>("[data-group]").forEach((el) => {
+    const root = listRef.current;
+    if (!root) return;
+    root.querySelectorAll<HTMLElement>("[data-group]").forEach((el) => {
       el.hidden = el.dataset.group !== tab || (ticker !== "all" && el.dataset.ticker !== ticker);
+    });
+    root.querySelectorAll<HTMLDetailsElement>("[data-stock-group]").forEach((group) => {
+      const n = group.querySelectorAll("[data-group]:not([hidden])").length;
+      group.hidden = n === 0;
+      const count = group.querySelector<HTMLElement>("[data-stock-count]");
+      if (count) count.textContent = `${n} ข้อ`;
+      // เลือกหุ้นตัวเดียว = ตั้งใจจะอ่านตัวนั้น กางให้เลย; กลับไป "ทุกตัว" ปล่อยตามที่ผู้ใช้กางไว้
+      if (ticker !== "all") group.open = group.dataset.stockGroup === ticker;
     });
   }, [tab, ticker]);
 
@@ -89,7 +100,9 @@ export default function ClaimFeed({
         </select>
       </div>
 
-      <div ref={listRef}>{children}</div>
+      <div ref={listRef} className="trk-stocks" hidden={shown === 0}>
+        {children}
+      </div>
       {shown === 0 && <p className="trk-lead">ไม่มีข้อในหมวดนี้</p>}
     </div>
   );
