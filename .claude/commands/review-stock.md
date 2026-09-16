@@ -43,6 +43,7 @@ argument-hint: <TICKER> [วันที่ YYYY-MM-DD ถ้าไม่ใช�
    - **ห้ามส่ง research ทั้งก้อนเก่าให้ reviewer** — มันต้องตัดสินจากทฤษฎีเดิม + ของใหม่เท่านั้น
    - ย้ำให้ reviewer ตอบ `plan_status` + `action_md` โดยเทียบราคาปัจจุบันกับ `entry_plan.tranches` ใน prev-context จริงๆ (ingest จะปฏิเสธไฟล์ที่ไม่มี 2 ฟิลด์นี้)
    - ทุก check ต้องมีคำอธิบาย 4 ช่อง `if_md` / `then_md` / `because_md` / `so_md` (so_md เว้นได้เฉพาะ too-early) สำหรับหน้า `/track-record` — `then_md` ต้องมาจากทฤษฎีเดิมเท่านั้น (ingest ปฏิเสธไฟล์ที่ขาด)
+   - ต้องมี `alternatives_md` (ทางเลือกที่พิจารณาแล้วไม่เลือก + เพราะอะไร) และ `data_quality_md` (ข้อมูลที่ยังสงสัย หรือ "ไม่มี — เหตุผล") — ingest ปฏิเสธไฟล์ที่ขาด และสแกนคำรับประกัน/คำสั่งซื้อขายใน `action_md`/`review_md`/`alternatives_md`
 
 6. **บันทึกลง DB**:
    ```

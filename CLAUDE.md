@@ -7,11 +7,23 @@
 - `app/` — Next.js (App Router) หน้าเว็บอ่านอย่างเดียว: `/` รายชื่อหุ้น, `/stock/[ticker]` รายละเอียด, `/insights` + `/insights/[slug]` รายงาน hint, `/best-price` จัดอันดับหุ้นที่ราคาน่าสนใจที่สุด (คำนวณจาก `lib/ranking.ts` — ไม่มีข้อมูลใหม่ ใช้เฉพาะที่มีใน DB), `/track-record` ทฤษฎีแม่นแค่ไหน (สถิติจาก `thesis_checks` ผ่าน `lib/track-record.ts` — ไม่ใช้ราคา; risk นับแยกเพราะ risk ที่ "ยืนยัน" คือเรื่องร้ายเกิดจริง) + การ์ด "เคยบอกว่าถ้า → จะส่งผล / ตอนนี้ เพราะ → ส่งผลให้" ทุกข้อ
 - `lib/db.ts` — client + query ทั้งหมด (Turso ผ่าน env, fallback ไฟล์ `data/stock.db`)
 - `scripts/` — `init-db.mjs` (สร้าง schema), `ingest.mjs` (นำ bundle.json ลง DB), `ingest-hint.mjs` (นำ hint.json ลง DB), `list-hints.mjs` (list hint — กัน dedup ตอนหาต้นทาง 30 วัน / หา exposure ตอนดูย้อนหลังยาว), `get-hint.mjs <slug>` (ดึง hint เดียวแบบเต็ม), `seed-demo.mjs`, `schema.mjs` (นิยาม schema — แก้ที่นี่ที่เดียว)
+- `scripts/` (ด่านตรวจของ pipeline เต็ม — ดูหัวข้อ "ด่านตรวจ 2 ด่าน") — `check-sanity.mjs <DIR>` (อ่าน `sanity.json` จาก agent `data-sanity` + ตรวจซ้ำด้วยโค้ด exit 1 = BLOCKING), `check-compliance.mjs <DIR>` (อ่าน `compliance.json` จาก agent `stock-compliance` + ตรวจว่า passage มีจริง + สแกนคำต้องห้าม + disclaimer exit 1 = ห้าม ingest), `watch-brief.mjs` (สรุปก่อนเปิดตลาดของ watchlist อ่านจาก DB อย่างเดียว)
 - `scripts/` (รอบติดตาม) — `prev-context.mjs <TICKER>` (ความจำของรอบก่อนแบบกระชับ), `price-delta.mjs [--due] [--json]` (ราคาจริงเทียบแผน + เกณฑ์แข็ง ไม่ใช้ agent), `ingest-review.mjs` (บันทึกผลทบทวน + ตรวจความซื่อสัตย์ของ claim + บังคับคำอธิบาย 4 ช่อง `if_md/then_md/because_md/so_md` และ `impact` = good/bad/mixed ต่อหุ้นสำหรับข้อที่รู้ผลแล้ว — สีการ์ด risk ใช้ impact เพราะ risk บางข้อคือ "ความเสี่ยงที่ทฤษฎีจะผิด" ซึ่งเกิดจริงแล้วดีต่อหุ้น เดาจาก status ไม่ได้), `explain-checks.mjs export|export-impact|apply` (เติมคำอธิบาย 4 ช่อง/impact ให้ผลตรวจเก่าที่ยังไม่มี — ใช้แค่ข้อความใน DB, then_md ต้องมาจากทฤษฎีเดิม), `items.mjs` (คลัง item ระดับ ticker), `archive-items.mjs` / `dedupe-items.mjs` (ดูแลอายุข่าว), `quotes.mjs` (ราคาฝั่ง node)
-- `.claude/agents/` — ทีม: `stock-researcher` (research), `stock-analyst` (analyze), `stock-theorist` (theorie), `stock-reviewer` (ทบทวนรายสัปดาห์ — ดูหัวข้อ "รอบติดตาม" ด้านล่าง), `hint-analyst` (วิเคราะห์ hint แยก — ดูหัวข้อ "Hint" ด้านล่าง)
+- `.claude/agents/` — ทีม: `stock-researcher` (research), `data-sanity` (ด่านตรวจข้อมูลก่อนคิด), `stock-analyst` (analyze), `stock-theorist` (theorie), `stock-compliance` (ด่านตรวจภาษาก่อนเผยแพร่), `stock-reviewer` (ทบทวนรายสัปดาห์ — ดูหัวข้อ "รอบติดตาม" ด้านล่าง), `hint-analyst` (วิเคราะห์ hint แยก — ดูหัวข้อ "Hint" ด้านล่าง)
 - `.claude/commands/research-stock.md` — `/research-stock <TICKER>` รัน pipeline เต็ม (รวมขั้นเช็ค hint)
+- `.claude/commands/watch-brief.md` — `/watch-brief` สรุปก่อนเปิดตลาดของหุ้นที่ติดตาม (ต้องทำอะไรไหม / สถานะเปลี่ยน / ราคาถึงเกณฑ์ / insight ที่กระทบ / ค้างทบทวน) อ่านจาก DB อย่างเดียว ไม่ค้นเว็บ ไม่ผลิตความเห็นใหม่
 - `.claude/commands/review-stock.md` / `review-week.md` — `/review-stock <TICKER>` รอบติดตาม 1 ตัว, `/review-week` ทำคิวทั้งสัปดาห์จบในคำสั่งเดียว (orchestrator ห้ามอ่านไฟล์ JSON เอง ส่งแค่ path ให้ agent — ทำให้ 29 ticker กิน context ~30k จบใน session เดียว)
 - `pipeline/output/` — ไฟล์กลางของแต่ละ run (gitignored), `pipeline/examples/demo-bundle.json` — ตัวอย่างรูปแบบ bundle
+
+## ด่านตรวจ 2 ด่านใน `/research-stock` (ดัดแปลงจาก plugin Claude for Financial Advisors ของ Anthropic)
+
+หลักร่วม: **agent หาและชี้ สคริปต์ตัดสิน คนแก้คือทีมที่เขียน** — ด่านไม่แก้ข้อความ/ตัวเลขเอง (ถ้าด่านแก้เองได้ มันจะกลายเป็นคนเขียนอีกคนที่ไม่มีใครตรวจ)
+
+- **ขั้น 2.7 data-sanity** (ก่อน analyst): agent `data-sanity` ตรวจ `research.json` 7 ข้อ (เก่า/ขัดแย้ง/สอดคล้องภายใน/ขนาดผิดปกติ/ครบถ้วน/ซ้ำ/คุณภาพแหล่ง) ทุกธงต้องบอก `contaminates` = ตัวเลข/ข้อสรุปไหนของรายงานจะรับปัญหาไป → `check-sanity.mjs` ตรวจรูปแบบ + ตรวจซ้ำด้วยโค้ด · BLOCKING = ส่งกลับ researcher 1 ครั้ง ไม่ผ่านอีก = หยุด ไม่ออกรายงาน · FLAGS (ปกติ) = analyst ต้องอ่าน `sanity.json` และใส่คำเตือนใน "ข้อจำกัดของการวิเคราะห์"
+- **ขั้น 4.5 compliance gate** (ก่อน ingest): agent `stock-compliance` ตรวจ `analysis.json`+`theories.json` 8 กฎ (คำรับประกัน/คำสั่งซื้อขาย/ตัวเลขไม่มีที่มาใน research/ด้านเดียว/cherry-pick/มั่นใจเกินหลักฐาน/disclaimer/ศัพท์ไม่แปลในชั้นคนทั่วไป) คัดลอก `passage` ตรงตัว → `check-compliance.mjs` ตรวจว่า passage มีจริง + สแกนคำต้องห้ามด้วย regex + disclaimer ใน `invalidation_md` · exit 1 = ส่งประโยคกลับให้ analyst/theorist แก้ **ห้ามแก้ verdict/คะแนน/เป้า/โซนไม้เพราะเรื่องถ้อยคำ** ไม่เกิน 2 รอบ ไม่ผ่าน = ห้าม ingest · ตัวเลขที่มีลิงก์ `/insights/<slug>` ถือว่ามีที่มา
+- รอบทบทวนไม่มี agent ด่านแยก (ประหยัด) แต่ `ingest-review.mjs` สแกนคำต้องห้ามใน `action_md`/`review_md`/`alternatives_md` ด้วย regex ชุดเดียวกัน — **regex ภาษาไทยห้ามใช้ lookahead `(?![ก-๙])` กันขอบคำ** เพราะไทยไม่มีช่องว่างคั่นคำ ("ซื้อเลยตอนนี้" จะหลุด — เคยหลุดจริงตอนทดสอบ)
+- agent ที่อ่านเนื้อหาจากเว็บ/ไฟล์ที่มาจากเว็บ (`stock-researcher`, `data-sanity`, `stock-compliance`, `hint-*`) **ห้ามมี Bash** — เนื้อหาที่อ่านคือ untrusted input การจำกัด tool ต้องเป็นเชิงโครงสร้าง ไม่ใช่แค่สั่งด้วยข้อความ
+- plugin ต้นทางติดตั้งไว้ที่ user scope (`claude-for-financial-advisors@knowledge-work-plugins`) — skill ของมัน (`/compliance`, `/pre-meeting` ฯลฯ) ผูกกับ CRM/พอร์ตลูกค้าและกฎ SEC ใช้กับโปรเจคนี้ตรงๆ ไม่ได้ เอามาแค่แนวคิด
 
 ## Hint / Insights
 
@@ -36,6 +48,7 @@
 - status ที่ไม่ใช่ `too-early` ต้องมีหลักฐานที่มี url อย่างน้อย 1 ชิ้น
 - **ราคาไม่ใช่หลักฐาน** ราคาคือสิ่งที่ทฤษฎีพยายามอธิบาย ใช้ยืนยัน/หักล้างทฤษฎีไม่ได้
 - ทุกรอบต้องมี `action_md` + `plan_status` (no-action / watch / plan-live / plan-broken) — ตอบให้ได้ว่า **อ่านจบแล้วต้องทำอะไรไหม** โดยอิง `entry_plan` เดิม ไม่ใช่คำแนะนำใหม่ รอบที่ตอบข้อนี้ไม่ได้คือรอบที่ไม่มีประโยชน์
+- ทุกรอบต้องมี `alternatives_md` (ทางเลือกที่พิจารณาแล้ว**ไม่เลือก** + เพราะอะไร — อิงแผนเดิม/อำนาจผู้ตัดสิน ไม่ใช่ที่เสนอไม้ใหม่) และ `data_quality_md` (ข้อมูลที่ยังสงสัยของรอบนี้ หรือ "ไม่มี — เหตุผล") — คำตัดสินที่ไม่บอกว่าชั่งกับอะไรและยืนบนข้อมูลแค่ไหน ตรวจย้อนไม่ได้ (แนวคิดจาก rebalance memo ของ plugin) หน้าหุ้นแสดง 2 ช่องนี้แบบพับไว้ใต้ `action_md`
 
 เกณฑ์แข็งจาก `price-delta.mjs` (ราคาขยับ ≥7% / เพิ่งเข้าโซนไม้ลึก / แตะเป้า bull-bear / ครบ 8 สัปดาห์ตั้งแต่ full run) บังคับให้ reviewer ต้องตรวจหนักขึ้นและอธิบายให้ได้ แต่**ราคาอย่างเดียวไม่ใช่เหตุให้รัน pipeline ใหม่** — จะรัน `/research-stock` ต่อเมื่อ reviewer ยกธงเอง, มี claim `broken`, งบใหม่ออก, หรือครบ 8 สัปดาห์
 
@@ -67,6 +80,9 @@ npm run review:context -- <TICKER>   # ความจำของรอบก�
 npm run ingest-review -- <review.json> [research.json]
 npm run items:archive    # dry run; ใส่ -- --apply เพื่อเขียนจริง
 npm run review:summary   # สรุปผลรอบทบทวนของวันนี้จาก DB
+npm run watch:brief      # สรุปก่อนเปิดตลาดของ watchlist (--email= / --all / --days= / --json)
+npm run check:sanity -- <DIR>       # ด่านตรวจข้อมูล (หลัง agent data-sanity)
+npm run check:compliance -- <DIR>   # ด่านตรวจภาษา (หลัง agent stock-compliance)
 ```
 
 ## Login + log การเข้าใช้

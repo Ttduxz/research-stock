@@ -13,6 +13,8 @@
  *   "escalate_reason": "...", "escalated_by": ["rule", "reviewer"],
  *   "plan_status": "no-action | watch | plan-live | plan-broken",
  *   "action_md": "1-2 ประโยค: แล้วต้องทำอะไรไหม (อิงแผนเดิมในรายงาน ไม่ใช่คำแนะนำใหม่)",
+ *   "alternatives_md": "bullet: ทางเลือกที่พิจารณาแล้วไม่เลือก + เพราะอะไร (อิงแผนเดิม)",
+ *   "data_quality_md": "bullet: ข้อมูลที่ยังสงสัย/ช่องว่างหลักฐานของรอบนี้ หรือ 'ไม่มี — ...'",
  *   "checks": [{ "claim": "<ข้อความเดิมแบบคัดลอกตรงตัว>",
  *                "claim_type": "assumption|catalyst|risk|invalidation|target",
  *                "theory_title": "...", "status": "confirmed|weakened|broken|too-early",
@@ -25,6 +27,8 @@
  *   1. claim ประเภท assumption/catalyst/risk ต้องตรงกับข้อความในทฤษฎีเดิมเป๊ะ ไม่ใช่เรียบเรียงใหม่
  *   2. status ที่ไม่ใช่ too-early ต้องมีหลักฐานอย่างน้อย 1 ชิ้นที่มี url
  *   3. ต้องมี action_md + plan_status เสมอ — รอบทบทวนที่บอกไม่ได้ว่า "แล้วยังไงต่อ" คือรอบที่ไม่มีประโยชน์
+ *   4. ต้องมี alternatives_md + data_quality_md — คำตัดสินที่ไม่บอกว่าชั่งกับทางเลือกอะไรและยืนบนข้อมูลแค่ไหน ตรวจย้อนไม่ได้
+ *   5. action_md / review_md / alternatives_md ห้ามมีคำรับประกัน/คำสั่งซื้อขาย (สแกนด้วย regex — คนทั่วไปอ่านชั้นนี้)
  */
 import { readFileSync } from "node:fs";
 import { applySchema } from "./schema.mjs";
@@ -65,6 +69,16 @@ else if (review.action_md && review.action_md.length > 400)
   console.error(`⚠ action_md ยาว ${review.action_md.length} ตัวอักษร (ควร ≤400) — คนอ่านต้องได้คำตอบใน 1-3 ประโยค`);
 if (!PLAN_STATUSES.includes(review.plan_status))
   fail(`review.plan_status ต้องเป็นหนึ่งใน: ${PLAN_STATUSES.join(", ")}`);
+if (!review.alternatives_md?.trim())
+  fail("review.alternatives_md หายไป — ต้องบอกว่าทางเลือกอื่นที่พิจารณาแล้วไม่เลือกคืออะไรและเพราะอะไร (ดูหัวข้อ 'ทางเลือกที่พิจารณาแล้วไม่เลือก' ใน stock-reviewer.md)");
+if (!review.data_quality_md?.trim())
+  fail("review.data_quality_md หายไป — ต้องบอกว่าข้อมูลรอบนี้มีอะไรที่ยังสงสัย/ขาด หรือเขียนว่า 'ไม่มี' พร้อมเหตุผลสั้นๆ");
+// ชั้นที่คนทั่วไปอ่าน — คำสัญญาผล/คำสั่งซื้อขายหลุดไปไม่ได้ (ด่านเดียวกับ check-compliance.mjs ของ pipeline เต็ม แต่แบบเบา)
+const BANNED = [/รับประกัน(?!สินค้า|คุณภาพ)/, /ไม่มีทางขาดทุน/, /ปลอดความเสี่ยง/, /ขึ้นแน่/, /ห้ามพลาด/, /ซื้อ(?:เลย|ทันที)/, /เข้าเต็มพอร์ต/, /guaranteed?/i, /risk[- ]free/i];
+for (const f of ["action_md", "review_md", "alternatives_md"]) {
+  const hit = BANNED.map((re) => String(review[f] ?? "").match(re)?.[0]).find(Boolean);
+  if (hit) fail(`review.${f} มีคำที่ใช้ในรายงานเพื่อการศึกษาไม่ได้: "${hit}" — เขียนใหม่เป็นเงื่อนไข/เหตุผล ไม่ใช่คำสัญญาหรือคำสั่ง`);
+}
 if (review.stance === "escalate" && !review.escalate_reason?.trim())
   fail("stance = escalate ต้องมี escalate_reason ว่าทำไมถึงต้องให้ analyst/theorist ทำใหม่");
 
@@ -159,8 +173,8 @@ try {
     const rs = await tx.execute({
       sql: `INSERT INTO reviews
               (ticker, review_date, base_run_id, stance, review_md, price_at_review, price_move_pct,
-               escalated_by, escalate_reason, action_md, plan_status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
+               escalated_by, escalate_reason, action_md, plan_status, alternatives_md, data_quality_md)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
       args: [
         ticker,
         reviewDate,
@@ -173,6 +187,8 @@ try {
         review.escalate_reason ?? null,
         review.action_md,
         review.plan_status,
+        review.alternatives_md.trim(),
+        review.data_quality_md.trim(),
       ],
     });
     const reviewId = Number(rs.rows[0].id);

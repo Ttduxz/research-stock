@@ -20,7 +20,10 @@
     "items:archive": "node scripts/archive-items.mjs",
     "items:dedupe": "node scripts/dedupe-items.mjs",
     "review:summary": "node scripts/review-summary.mjs",
-    "review:progress": "node scripts/review-progress.mjs"
+    "review:progress": "node scripts/review-progress.mjs",
+    "watch:brief": "node scripts/watch-brief.mjs",
+    "check:sanity": "node scripts/check-sanity.mjs",
+    "check:compliance": "node scripts/check-compliance.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",

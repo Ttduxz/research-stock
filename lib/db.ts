@@ -225,6 +225,10 @@ export interface Review {
   plan_status: string | null;
   /** บรรทัดที่ตอบว่า "อ่านจบแล้วต้องทำอะไรไหม" — บังคับให้มีตั้งแต่ตอน ingest */
   action_md: string | null;
+  /** ทางเลือกที่พิจารณาแล้วไม่เลือก + เหตุผล (อิงแผนเดิม ไม่ใช่คำแนะนำใหม่) — markdown bullet */
+  alternatives_md: string | null;
+  /** ข้อมูลที่ยังสงสัย / ช่องว่างหลักฐานของรอบนี้ — markdown bullet หรือ "ไม่มี" */
+  data_quality_md: string | null;
   resulting_run_id: number | null;
   created_at: string;
 }

@@ -181,6 +181,22 @@ export default async function StockPage({
             </span>
           </div>
           <p className="rv-action-text">{latestReview.action_md}</p>
+          {(latestReview.alternatives_md || latestReview.data_quality_md) && (
+            <div className="rv-action-more">
+              {latestReview.alternatives_md && (
+                <details className="rv-action-detail">
+                  <summary>ทางเลือกที่พิจารณาแล้วไม่เลือก</summary>
+                  <Markdown text={latestReview.alternatives_md} />
+                </details>
+              )}
+              {latestReview.data_quality_md && (
+                <details className="rv-action-detail">
+                  <summary>ข้อมูลที่ยังสงสัยในรอบนี้</summary>
+                  <Markdown text={latestReview.data_quality_md} />
+                </details>
+              )}
+            </div>
+          )}
         </div>
       )}
 

@@ -1429,6 +1429,15 @@ body::after {
 }
 .rv-action-when { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-family: var(--font-data); color: var(--text-faint); }
 .rv-action-text { margin: 0; font-size: 14.5px; line-height: 1.8; color: var(--text); }
+/* 2 ช่องเสริมใต้พาดหัว (ทางเลือกที่ไม่เลือก / ข้อมูลที่ยังสงสัย) — พับไว้ ไม่แย่งความสนใจจาก action_md */
+.rv-action-more { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border); }
+.rv-action-detail { font-size: 13px; color: var(--text-dim); flex: 1 1 260px; }
+.rv-action-detail > summary { cursor: pointer; font-family: var(--font-data); font-size: 12px; letter-spacing: 0.02em; color: var(--text-faint); list-style: none; }
+.rv-action-detail > summary::before { content: "▸ "; }
+.rv-action-detail[open] > summary::before { content: "▾ "; }
+.rv-action-detail > summary::-webkit-details-marker { display: none; }
+.rv-action-detail p, .rv-action-detail li { font-size: 13px; line-height: 1.7; margin: 4px 0; }
+.rv-action-detail ul { margin: 4px 0 0; padding-left: 18px; }
 .rv-action.ps-watch { border-left-color: var(--yellow); }
 .rv-action.ps-watch .rv-action-label { color: var(--yellow); }
 .rv-action.ps-plan-live { border-left-color: var(--green); }

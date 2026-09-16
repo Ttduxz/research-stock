@@ -86,6 +86,8 @@ export const SCHEMA = [
     escalate_reason TEXT,
     action_md       TEXT,
     plan_status     TEXT,
+    alternatives_md TEXT,
+    data_quality_md TEXT,
     resulting_run_id INTEGER REFERENCES research_runs(id),
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
@@ -172,6 +174,11 @@ export const MIGRATIONS = [
   // index นี้อยู่ท้าย MIGRATIONS ไม่ใช่ใน SCHEMA เพราะอ้างคอลัมน์ status ที่เพิ่งถูก ALTER เพิ่มด้านบน
   `ALTER TABLE reviews ADD COLUMN action_md TEXT`,
   `ALTER TABLE reviews ADD COLUMN plan_status TEXT`,
+  // 2 ช่องจากแนวคิด Rebalance Rationale Memo (plugin Claude for Financial Advisors):
+  // alternatives_md = ทางเลือกที่พิจารณาแล้ว "ไม่เลือก" และเพราะอะไร (อิงแผนเดิม — กันการตัดสินใจโดยไม่ได้ชั่งทางเลือก)
+  // data_quality_md = ข้อมูลที่ยังสงสัย/ช่องว่างหลักฐานของรอบนี้ (คนอ่านต้องรู้ว่าคำตัดสินนี้ยืนบนข้อมูลแค่ไหน)
+  `ALTER TABLE reviews ADD COLUMN alternatives_md TEXT`,
+  `ALTER TABLE reviews ADD COLUMN data_quality_md TEXT`,
   // คำอธิบาย 4 ช่องของผลตัดสินแต่ละข้อ (หน้า /track-record): "เคยบอกว่าถ้า X → จะส่งผล Y / ตอนนี้ Z เพราะ → ส่งผลให้ U"
   // claim ยังเป็นข้อความเดิมตรงตัวเหมือนเดิม — 4 ช่องนี้เป็นแค่ชั้นอธิบายภาษาคน then_md ต้องมาจากทฤษฎีเดิมเท่านั้น
   `ALTER TABLE thesis_checks ADD COLUMN if_md TEXT`,
