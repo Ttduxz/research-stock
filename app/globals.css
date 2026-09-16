@@ -2143,3 +2143,186 @@ body::after {
 
 /* หัวกลุ่ม/แถวที่กดกางได้: คลิกแล้วเบราว์เซอร์เลือกข้อความเป็นแถบสีฟ้า ดูเหมือนหน้าค้าง — ปิดการเลือกข้อความเฉพาะแถบที่กด */
 .wl-group-sum, .wl-sum, .trk-stock-sum { user-select: none; -webkit-user-select: none; }
+
+
+/* ============================================================
+   มือถือ (≤640px): อ่านได้โดยไม่ต้องซูม
+   ดีไซน์หลักตั้งขนาดป้าย/ตัวเลขไว้ 11–13px ซึ่งพอดีบนจอคอม แต่บนโทรศัพท์คือ "ต้องซูมเอา"
+   บล็อกนี้ยกพื้นขั้นต่ำขึ้นทั้งเว็บด้วยการ override selector ทุกตัวที่เล็กกว่า 14px
+   (รายชื่อสร้างจากการสแกนไฟล์นี้ — เพิ่ม class เล็กใหม่ที่ไหน ให้มาเติมที่นี่ด้วย)
+   ============================================================ */
+@media (max-width: 640px) {
+  html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+  :root { --eyebrow-size: 12px; }
+  .container { padding: 0 16px 64px; }
+  .masthead { padding: 0 12px; }
+  .site-header { margin-bottom: 22px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 20px; margin: 40px 0 14px; padding-top: 16px; }
+  h2 { scroll-margin-top: 110px; }
+  .subtitle { font-size: 15.5px; margin-bottom: 20px; }
+  .md { font-size: 16px; line-height: 1.85; }
+  .md th, .md td { font-size: 14.5px; padding: 7px 10px; }
+  body { font-size: 16.5px; }
+
+  /* ป้าย/ตัวเลขจิ๋ว (เดิม ≤11.5px) */
+  .stat-k,
+  .sc-name,
+  .tr-name,
+  .meter-top,
+  .rank-score-l,
+  .badge-score,
+  .ladder-k,
+  .ladder-sub,
+  .rank-tbl .stat-n,
+  .rb-note,
+  .rv-eyebrow,
+  .cv-src a,
+  .cmp-label,
+  .cmp-src a,
+  .rv-action-label,
+  .pd-title,
+  .pd-dir,
+  .cb-k,
+  .sc-diff,
+  .rp-kind,
+  .rv-hist-lead,
+  .tb-lead,
+  .tb-k,
+  .wk-lead,
+  .cmp-origin,
+  .mi-lead,
+  .trk-date,
+  .menu-heading,
+  .wl-insight,
+  .wl-insight-more { font-size: 12.5px; }
+
+  /* ข้อความรอง (เดิม 12–12.5px) */
+  .stock-card .meta,
+  .badge,
+  .run-picker a,
+  .card .src,
+  .scenario .sc-prob,
+  .theory-meta,
+  .tr-alloc,
+  .stat-n,
+  .seg-meta,
+  .fin-tbl caption,
+  .rank-tbl-no,
+  .legend,
+  .disclaimer,
+  .quote cite,
+  .fig-caption,
+  .rank-sector,
+  .rank-tbl,
+  .stat-chg,
+  .rv-move,
+  .rv-older > summary,
+  .ck-tally,
+  .cv-text,
+  .claim-note,
+  .cmp-none,
+  .rv-action-when,
+  .rv-action-detail > summary,
+  .tr-moved,
+  .chg-from,
+  .chg-conf,
+  .news-meta,
+  .h-date,
+  .ck-legend,
+  .rvh-date,
+  .price-when,
+  .price-note,
+  .wk-date,
+  .wk-price,
+  .wk-act,
+  .wk-note,
+  .ps-label,
+  .ps-txt,
+  .claim-why,
+  .log-dim,
+  .log-path,
+  .donate-head .eyebrow,
+  .thaiqr-strip,
+  .trk-meta,
+  .trk-step,
+  .trk-sources,
+  .trk-item-foot,
+  .trk-impact,
+  .trk-stock-count,
+  .menu-link-desc,
+  .menu-email,
+  .menu-signout,
+  .hint-checked,
+  .hint-status-date,
+  .hint-status-src,
+  .hint-status-foot,
+  .req-date,
+  .wl-name,
+  .wl-meta,
+  .wl-updated { font-size: 13.5px; }
+
+  /* ข้อความประกอบ (เดิม 13–13.5px) */
+  .stock-card .name,
+  .filter-label,
+  .filter-result,
+  .filter-row .stock-search-clear,
+  .crumbs,
+  .scenario .sc-note,
+  .toc a,
+  .tr-note,
+  .tr-trigger,
+  .seg-desc,
+  .meter-top b,
+  .fin-tbl tbody td,
+  .rank-tbl td.col-now,
+  .rv-escalate,
+  .cmp-evidence,
+  .rv-action-detail,
+  .rv-action-detail p,
+  .rv-action-detail li,
+  .pd-list li,
+  .pd-why,
+  .cb-items,
+  .h-note,
+  .rv-what,
+  .rvh-note,
+  .donate-recipient,
+  .donate-note,
+  .trk-young,
+  .trk-q,
+  .trk-icon,
+  .trk-a-detail,
+  .trk-howto,
+  .trk-outcome,
+  .trk-orig,
+  .trk-result,
+  .watch-btn,
+  .req-msg,
+  .req-state,
+  .req-note,
+  .wl-price,
+  .wl-insight-list li { font-size: 14.5px; }
+
+  /* ตารางการเงิน: ตัวเลขใหญ่ขึ้น คอลัมน์แรก sticky แคบลงให้เห็นตัวเลขได้มากกว่า 1 คอลัมน์ */
+  .fin-tbl { font-size: 14.5px; }
+  .fin-tbl th, .fin-tbl td { padding: 9px 12px; }
+  .fin-tbl th:first-child, .fin-tbl td:first-child { min-width: 128px; }
+  .rank-tbl { font-size: 13.5px; }
+  .rank-tbl td.col-now { font-size: 14.5px; }
+
+  /* ตัวเลขเด่น */
+  .score-tile .value { font-size: 24px; }
+  .tr-price { font-size: 22px; }
+  .ladder-v { font-size: 16.5px; }
+  .stat-v { font-size: 19px; }
+
+  /* พื้นที่กด ≥ 40px */
+  .toc a { padding: 7px 12px; }
+  .filter-pills button { padding: 8px 13px; font-size: 14px; }
+  .sort-select { padding: 9px 12px; font-size: 15px; }
+  .watch-btn { min-height: 40px; }
+  .raw-item summary, .rv-older > summary, .rv-action-detail > summary, .wl-sum, .wl-group-sum, .trk-stock-sum { min-height: 44px; }
+  .stock-search input { font-size: 16px; padding: 12px 14px; } /* ≥16px กัน iOS Safari ซูมเข้าเองตอนแตะช่องพิมพ์ */
+  .req-form input, .req-form textarea { font-size: 16px; }
+}
