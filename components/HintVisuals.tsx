@@ -363,11 +363,11 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
                 transition={{ duration: 0.5, delay: i * 0.1, ease: EASE }}
               >
                 <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="9" />
-                <text x={p.cx} y={p.y + (n.sub ? 25 : 35)} textAnchor="middle" className="hv-node-t">
+                <text x={p.cx} y={p.y + (n.sub ? 25 : 35)} textAnchor="middle" className="hv-node-t" {...fitText(n.label, 8.2, p.w - 16)}>
                   {n.label}
                 </text>
                 {n.sub && (
-                  <text x={p.cx} y={p.y + 44} textAnchor="middle" className="hv-node-s">
+                  <text x={p.cx} y={p.y + 44} textAnchor="middle" className="hv-node-s" {...fitText(n.sub, 6.9, p.w - 14)}>
                     {n.sub}
                   </text>
                 )}
@@ -429,6 +429,12 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
 }
 
 type Box = { x: number; y: number; w: number; h: number; cx: number; cy: number };
+
+/** ข้อความที่น่าจะกว้างเกินกล่อง (ประมาณจากจำนวนตัวอักษร × ความกว้างเฉลี่ย) ให้ SVG บีบให้พอดีแทนที่จะล้นออกนอกกล่อง
+ *  — ตัวตรวจจำกัดความยาว label/sub แล้ว แต่ตัวอักษรไทย/ตัวพิมพ์ใหญ่กว้างกว่าค่าเฉลี่ย บางข้อความยังล้นได้ */
+function fitText(text: string, avgCharW: number, maxW: number) {
+  return text.length * avgCharW > maxW ? { textLength: maxW, lengthAdjust: "spacingAndGlyphs" as const } : {};
+}
 
 /** เส้นระหว่างกล่อง: แถวเดียวกัน = แนวนอน, คอลัมน์เดียวกัน = แนวตั้ง, ต่างทั้งคู่ = หักศอก (ออกด้านข้างก่อนแล้วขึ้น/ลง) */
 function edgePath(a: Box, b: Box, offset: number) {
