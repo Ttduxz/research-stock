@@ -65,6 +65,13 @@ function StockRow({
                 </span>
               ))}
               {insights.length > 2 && <span className="wl-insight-more">+{insights.length - 2}</span>}
+              {/* มือถือ: ชิปเต็มแย่งพื้นที่จนอ่านแถวยาก — เหลือจุดสีตามทิศทาง + จำนวน (รายชื่อเต็มอยู่ตอนกางแถว) */}
+              <span className="wl-insight-mini" aria-label={`insight ${insights.length} เรื่อง`}>
+                {insights.slice(0, 3).map((h) => (
+                  <i key={h.slug} className={`wl-dot dir-${h.direction ?? "mixed"}`} />
+                ))}
+                insight {insights.length}
+              </span>
             </span>
           )}
         </span>

@@ -2137,8 +2137,14 @@ body::after {
 .wl-updated { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--yellow); }
 /* iOS Safari: max-width เป็น % ของ flex item ใน container ที่กว้างตามเนื้อหา คำนวณไม่ได้ → nowrap ยืดทั้งหน้าจนเบราว์เซอร์ซูมออก
    (Chrome คำนวณได้จึงไม่เห็นอาการ) — มือถือให้ตัดบรรทัดแทนตัดด้วย … */
+.wl-insight-mini { display: none; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-faint); font-family: var(--font-data); }
+.wl-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+.wl-dot.dir-negative { background: var(--red); }
+.wl-dot.dir-positive { background: var(--green); }
 @media (max-width: 640px) {
-  .wl-insight { max-width: none; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.5; padding: 1px 8px; }
+  /* มือถือ: ชิปข้อความเต็มถูกซ่อน (เคยทำให้ iOS Safari ซูมออกทั้งหน้า และอ่านแถวยาก) เหลือจุดสี + จำนวน */
+  .wl-insight, .wl-insight-more { display: none; }
+  .wl-insight-mini { display: inline-flex; }
 }
 
 /* มือถือ: ไม่ซ่อนชื่ออีกแล้ว — ticker + ชื่อเต็มความกว้างบรรทัดแรก, verdict · ราคา · ★ · ลูกศร บรรทัดสอง */
