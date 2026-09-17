@@ -260,7 +260,7 @@ const FW = 680;
 const NODE_H = 60;
 const ROW_GAP = 64;
 const PAD_X = 16;
-const PAD_Y = 18;
+const PAD_Y = 44; // เผื่อป้ายบนลูกศรที่ยกขึ้นเหนือแถวบนสุด / ลงใต้แถวล่างสุด (ป้ายสูง 20 + ระยะ 12 จากขอบกล่อง)
 
 function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
   const reduced = useReducedMotion();
