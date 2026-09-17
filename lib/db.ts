@@ -173,6 +173,12 @@ export interface Hint {
   content_md: string;
   opinion_md: string | null; // ความเห็นส่วนตัวปิดท้าย (ถ้ามี)
   sources_json: string | null; // { group, title, url }[]
+  /** สเปกภาพประกอบ (HintVisual[]) — เว็บวาดเองจาก JSON ใน components/HintVisuals.tsx; agent ไม่เคยส่ง SVG/HTML */
+  visuals_json: string | null;
+  /** ศัพท์ที่ต้องรู้ก่อนอ่าน ({ term, meaning_md }[]) — แสดงเป็นกล่องบนสุด + ไฮไลต์คำในเนื้อหา */
+  glossary_json: string | null;
+  /** สรุป 2-4 bullet ภาษาคนสำหรับคนที่ไม่ได้อยู่สายการเงิน */
+  tldr_md: string | null;
   /** active = ยังมีผล | played-out = เกิดขึ้นครบแล้ว | invalidated = ถูกหักล้างแล้ว (ตัดสินโดยทีม hint-reviewer) */
   status: string | null;
   /** เหตุผลของสถานะล่าสุด ภาษาคน */
@@ -193,6 +199,49 @@ export interface HintSource {
   title: string;
   url: string;
 }
+
+export interface HintGlossaryTerm {
+  term: string;
+  meaning_md: string;
+}
+
+/** สเปกภาพประกอบของ hint — ชนิดจำกัด 5 แบบ ทุกแบบต้องมี read_md ("อ่านภาพ") บอกว่าภาพทำให้เห็นอะไรที่ย่อหน้าไม่ได้บอก
+ *  กติกาเต็ม + ตัวตรวจอยู่ scripts/hint-visuals.mjs (ใช้ร่วมกันระหว่าง ingest-hint และ illustrate-hints) */
+export type HintVisualKind = "base" | "hot" | "est";
+export interface HintVisualBase {
+  id: string;
+  title: string;
+  read_md: string;
+  unit?: string;
+}
+export interface HintVisualBars extends HintVisualBase {
+  type: "bars";
+  items: { label: string; value: number; display?: string; note?: string; kind?: HintVisualKind }[];
+}
+export interface HintVisualCompare extends HintVisualBase {
+  type: "compare";
+  before_label: string;
+  after_label: string;
+  items: { label: string; before: number; after: number }[];
+}
+export interface HintVisualFlow extends HintVisualBase {
+  type: "flow";
+  nodes: { id: string; label: string; sub?: string; kind?: "actor" | "money" | "pressure" | "neutral"; col: number; row: number }[];
+  edges: { from: string; to: string; label?: string; kind?: "money" | "pressure" | "neutral" }[];
+  steps?: { title: string; edges: string[]; caption_md: string }[];
+}
+export interface HintVisualScale extends HintVisualBase {
+  type: "scale";
+  min: number;
+  max: number;
+  markers: { label: string; value: number; kind?: "now" | "past" | "threshold" }[];
+  zones?: { from: number; to: number; label: string; tone?: "ok" | "warn" | "bad" }[];
+}
+export interface HintVisualTimeline extends HintVisualBase {
+  type: "timeline";
+  items: { date: string; label: string; value?: number; note?: string }[];
+}
+export type HintVisual = HintVisualBars | HintVisualCompare | HintVisualFlow | HintVisualScale | HintVisualTimeline;
 
 export interface StockOverview extends Stock {
   latest_run_id: number | null;

@@ -16,7 +16,12 @@
  *   "stats": [{ "label": "...", "value": "...", "note": "..." }],
  *   "content_md": "...markdown เนื้อหาหลัก (## หัวข้อย่อยได้)...",
  *   "opinion_md": "...ความเห็นส่วนตัวปิดท้าย (ถ้ามี)...",
- *   "sources": [{ "group": "...", "title": "...", "url": "..." }]
+ *   "sources": [{ "group": "...", "title": "...", "url": "..." }],
+ *   "visuals": [...],        // สเปกภาพประกอบ (ดู scripts/hint-visuals.mjs) — เว็บวาดเอง ห้ามส่ง SVG/HTML
+ *   "glossary": [{ "term": "CDS", "meaning_md": "..." }],
+ *   "tldr_md": "- ...
+- ...
+- ..."
  * }
  *
  * hint ไม่ใช่แค่ความเสี่ยง — direction=positive คือโอกาส/catalyst เชิงบวกที่กระทบกว้าง
@@ -27,6 +32,7 @@
 import { readFileSync } from "node:fs";
 import { applySchema } from "./schema.mjs";
 import { openDb } from "./db-client.mjs";
+import { validateHintExtras } from "./hint-visuals.mjs";
 
 const file = process.argv[2];
 if (!file) {
@@ -57,6 +63,14 @@ if (hint.impact_score != null) {
     process.exit(1);
   }
 }
+// ชั้นอ่านให้เข้าใจ (ภาพ/ศัพท์/สรุป) — ผิดแม้ข้อเดียวไม่บันทึกเลย ไม่มี --force เพราะภาพที่ตัวเลขไม่ตรงเนื้อหาคือรายงานที่โกหก
+const extraErrors = validateHintExtras(hint);
+if (extraErrors.length) {
+  console.error("visuals/glossary/tldr_md มีปัญหา:");
+  for (const e of extraErrors) console.error("  - " + e);
+  process.exit(1);
+}
+
 // ไม่ใส่ impact_score มา — derive คร่าวๆ จาก magnitude กันไม่ให้เป็น NULL (ค่าที่ hint-analyst ประเมินเองแม่นกว่านี้เสมอ)
 const MAGNITUDE_DEFAULT_SCORE = { high: 70, mid: 45, low: 20 };
 const impactScore =
@@ -69,8 +83,8 @@ const j = (v) => (v == null ? null : JSON.stringify(v));
 
 try {
   await db.execute({
-    sql: `INSERT INTO hints (slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    sql: `INSERT INTO hints (slug, title, dek, direction, magnitude, impact_score, discovered_from, run_date, stats_json, content_md, opinion_md, sources_json, visuals_json, glossary_json, tldr_md)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           ON CONFLICT(slug) DO UPDATE SET
             title = excluded.title,
             dek = excluded.dek,
@@ -82,7 +96,10 @@ try {
             stats_json = excluded.stats_json,
             content_md = excluded.content_md,
             opinion_md = excluded.opinion_md,
-            sources_json = excluded.sources_json`,
+            sources_json = excluded.sources_json,
+            visuals_json = excluded.visuals_json,
+            glossary_json = excluded.glossary_json,
+            tldr_md = excluded.tldr_md`,
     args: [
       hint.slug,
       hint.title,
@@ -96,6 +113,9 @@ try {
       hint.content_md,
       hint.opinion_md ?? null,
       j(hint.sources),
+      j(hint.visuals),
+      j(hint.glossary),
+      hint.tldr_md ?? null,
     ],
   });
   console.log(`✔ ingested hint: ${hint.slug}`);

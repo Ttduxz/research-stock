@@ -23,11 +23,13 @@
     "review:progress": "node scripts/review-progress.mjs",
     "watch:brief": "node scripts/watch-brief.mjs",
     "check:sanity": "node scripts/check-sanity.mjs",
-    "check:compliance": "node scripts/check-compliance.mjs"
+    "check:compliance": "node scripts/check-compliance.mjs",
+    "hints:illustrate": "node scripts/illustrate-hints.mjs"
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
     "marked": "^14.1.2",
+    "motion": "^12.43.0",
     "next": "^15.4.5",
     "next-auth": "^5.0.0-beta.32",
     "qrcode": "^1.5.4",

@@ -70,6 +70,9 @@ export const SCHEMA = [
     content_md      TEXT NOT NULL,
     opinion_md      TEXT,
     sources_json    TEXT,
+    visuals_json    TEXT,
+    glossary_json   TEXT,
+    tldr_md         TEXT,
     created_at      TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
 
@@ -197,6 +200,12 @@ export const MIGRATIONS = [
   `ALTER TABLE hints ADD COLUMN status_md TEXT`,
   `ALTER TABLE hints ADD COLUMN status_sources_json TEXT`,
   `ALTER TABLE hints ADD COLUMN last_checked_on TEXT`,
+  // ชั้น "อ่านให้เข้าใจ" ของรายงาน hint (ดู scripts/hint-visuals.mjs): visuals = สเปกภาพประกอบที่เว็บวาดเอง
+  // (agent ห้ามส่ง SVG/HTML), glossary = ศัพท์การเงินที่ต้องรู้ก่อนอ่าน, tldr = สรุป 2-4 บรรทัดภาษาคน
+  // ตัวเลขทุกตัวในภาพต้องมีในเนื้อหาอยู่แล้ว — ภาพเป็นแค่การ "ทำให้เห็น" ไม่ใช่แหล่งข้อมูลใหม่
+  `ALTER TABLE hints ADD COLUMN visuals_json TEXT`,
+  `ALTER TABLE hints ADD COLUMN glossary_json TEXT`,
+  `ALTER TABLE hints ADD COLUMN tldr_md TEXT`,
   `CREATE INDEX IF NOT EXISTS idx_items_ticker ON research_items(ticker, status)`,
 ];
 

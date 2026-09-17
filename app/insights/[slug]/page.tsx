@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import type { HintStat, HintSource } from "@/lib/db";
+import type { HintStat, HintSource, HintVisual, HintGlossaryTerm } from "@/lib/db";
 import { getHint } from "@/lib/cached";
 import Markdown from "@/components/Markdown";
 import HintBadge from "@/components/HintBadge";
+import HintVisualFigure from "@/components/HintVisuals";
+import HintGlossary from "@/components/HintGlossary";
 import { HINT_STATUS_LABEL, isActiveHint } from "@/lib/hint-status";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +19,29 @@ function parseJson<T>(raw: string | null): T | null {
   }
 }
 
+/** แยก content_md ตรงบรรทัด [[visual:id]] เป็นท่อนข้อความสลับกับภาพ — ภาพที่ไม่มี marker ไปต่อท้าย
+ *  (สเปก marker อยู่ scripts/hint-visuals.mjs) */
+const MARKER_RE = /^\s*\[\[visual:([a-z0-9-]+)\]\]\s*$/gm;
+function splitContent(md: string, visuals: HintVisual[] | null) {
+  const byId = new Map((visuals ?? []).map((v) => [v.id, v]));
+  const parts: ({ kind: "md"; text: string } | { kind: "visual"; visual: HintVisual })[] = [];
+  const placed = new Set<string>();
+  let last = 0;
+  for (const m of md.matchAll(MARKER_RE)) {
+    const v = byId.get(m[1]);
+    if (!v) continue;
+    const before = md.slice(last, m.index).trim();
+    if (before) parts.push({ kind: "md", text: before });
+    parts.push({ kind: "visual", visual: v });
+    placed.add(v.id);
+    last = (m.index ?? 0) + m[0].length;
+  }
+  const tail = md.slice(last).trim();
+  if (tail) parts.push({ kind: "md", text: tail });
+  for (const v of visuals ?? []) if (!placed.has(v.id)) parts.push({ kind: "visual", visual: v });
+  return parts;
+}
+
 export default async function InsightPage({
   params,
 }: {
@@ -28,6 +53,9 @@ export default async function InsightPage({
 
   const stats = parseJson<HintStat[]>(hint.stats_json);
   const sources = parseJson<HintSource[]>(hint.sources_json);
+  const visuals = parseJson<HintVisual[]>(hint.visuals_json);
+  const glossary = parseJson<HintGlossaryTerm[]>(hint.glossary_json) ?? [];
+  const contentParts = splitContent(hint.content_md, visuals);
   const sourceGroups = new Map<string, HintSource[]>();
   for (const s of sources ?? []) {
     const key = s.group || "แหล่งข้อมูล";
@@ -99,6 +127,13 @@ export default async function InsightPage({
           </div>
         ))}
 
+      {hint.tldr_md && (
+        <section className="tldr" aria-label="สรุปสั้นๆ">
+          <span className="tldr-k">อ่านแค่นี้ก็พอเข้าใจ</span>
+          <Markdown text={hint.tldr_md} />
+        </section>
+      )}
+
       {stats && stats.length > 0 && (
         <div className="rail">
           {stats.map((s, i) => (
@@ -111,8 +146,12 @@ export default async function InsightPage({
         </div>
       )}
 
-      <div className="card">
-        <Markdown text={hint.content_md} />
+      {glossary.length > 0 && <HintGlossary terms={glossary} scope="#hint-content" />}
+
+      <div className="card" id="hint-content">
+        {contentParts.map((p, i) =>
+          p.kind === "md" ? <Markdown key={i} text={p.text} /> : <HintVisualFigure key={i} visual={p.visual} />
+        )}
       </div>
 
       {hint.opinion_md && (
