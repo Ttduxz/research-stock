@@ -23,7 +23,7 @@ path ของ `<DIR>/research.json` และวันที่รัน (`run_
 2. **ความขัดแย้งระหว่างแหล่ง (contradiction)** — ตัวชี้วัดเดียวกัน (รายได้ไตรมาส, EPS, margin, market cap, P/E, จำนวนพนักงาน) มีค่าต่างกันระหว่าง `research_items[].content_md` ด้วยกัน หรือระหว่าง items กับ `details` (`pl_history`, `stats`, `valuation_md`) — ต่างกันเกิน ~3% หรือคนละหน่วย/คนละมาตรฐาน (GAAP vs adjusted, ปีปฏิทิน vs ปีงบ) ต้องยก
 3. **ความสอดคล้องภายใน (aggregation)** — ผลรวม `segments[].revenue` ≈ รายได้รวมปีล่าสุดใน `pl_history` ไหม; `segments[].share` รวม ≈ 100% ไหม; `pl_history.chart.revenue` ตรงกับ `rows` ไหม; จำนวน `years` เท่ากับจำนวน `values` ทุกแถวไหม; net margin = กำไรสุทธิ/รายได้ จริงไหม (คำนวณเทียบคร่าวๆ แสดงตัวเลขที่ใช้)
 4. **ขนาดผิดปกติ (magnitude)** — การเติบโตหลายร้อย % โดยไม่มีคำอธิบาย (ควบรวม/ฐานต่ำ), margin > 100% หรือติดลบผิดหมวด, P/E ติดลบที่ถูกเรียกว่า "ถูก", market cap ไม่สอดคล้องกับราคา×จำนวนหุ้นถ้ามีข้อมูล, ราคาที่ดูเป็นคนละสกุลเงินกับ `stock.currency` — ยกให้ analyst ยืนยัน ไม่ตัดสินเองว่าจริงหรือไม่
-5. **ความครบถ้วน (completeness)** — field ที่ analyst/theorist พึ่งพา: `price_at_run`, `details.pl_history` (≥3 ปี), `details.latest_quarter_md`, `details.valuation_md`, `details.stats`, มี item หมวด `financials` และ `news` อย่างน้อยหมวดละ 1; item ที่ไม่มี `url` หรือ `published_at`; `notes_md` ที่บอกว่าหาอะไรไม่ได้ (ยกมาเป็นธงเสมอ เพราะ analyst มักมองข้าม)
+5. **ความครบถ้วน (completeness)** — `coverage.status` ต้องเป็น `complete` (ถ้า `partial` หรือไม่มี `coverage` เลย ให้ยกเป็นธง — โค้ดจะหยุด pipeline เอง); field ที่ analyst/theorist พึ่งพา: `price_at_run`, `details.pl_history` (≥3 ปี), `details.latest_quarter_md`, `details.valuation_md`, `details.stats`, มี item หมวด `financials` และ `news` อย่างน้อยหมวดละ 1; item ที่ไม่มี `url` หรือ `published_at`; `notes_md` ที่บอกว่าหาอะไรไม่ได้ (ยกมาเป็นธงเสมอ เพราะ analyst มักมองข้าม)
 6. **ความซ้ำ (duplication)** — item ที่ `url` เดียวกัน หรือหัวข้อ/เนื้อหาเรื่องเดียวกันจากหลายแหล่ง (ข่าวเดียวกันคนละสำนัก) ซึ่งจะทำให้น้ำหนักข่าวนั้นถูกนับซ้ำ; ข่าวลือกับข่าวยืนยันของเรื่องเดียวกันที่ควร supersede กัน
 7. **คุณภาพแหล่ง (sourcing)** — ข้อเท็จจริงสำคัญ (ดีลใหญ่, guidance, ตัวเลขงบ) ที่มีแหล่งเดียวและแหล่งนั้นไม่ใช่บริษัท/หน่วยงานทางการ/สำนักข่าวหลัก; item ที่ `source` เป็นบล็อก/ฟอรัม/บทความสรุปอัตโนมัติแต่ `importance` สูง; ตัวเลขใน `details` ที่ไม่มี item ไหนรองรับเลย
 
@@ -32,7 +32,13 @@ path ของ `<DIR>/research.json` และวันที่รัน (`run_
 ## ระดับ
 
 - `BLOCKING` — ปัญหาที่จะทำให้บทวิเคราะห์ผิดทั้งก้อน: `price_at_run` หาย/ผิดสกุล, ไม่มี `pl_history` เลย, ตัวเลขรายได้/กำไรหลักขัดกันเกิน 10% โดยไม่มีคำอธิบาย, งบล่าสุดที่ควรออกแล้วหายไป → orchestrator ส่งกลับให้ researcher ก่อน
-- `FLAGS` — วิเคราะห์ต่อได้แต่ต้องมีคำเตือนกำกับ (ส่วนใหญ่อยู่ระดับนี้)
+- `RESOLVE` — ปัญหาที่**ค้นเพิ่มแล้วน่าจะหายไป** ไม่ใช่ข้อจำกัดของข้อมูลจริง → orchestrator ส่งกลับให้ researcher ค้นเพิ่มหนึ่งรอบก่อนถึงมือ analyst (ถ้าปล่อยเป็น flag analyst จะได้แค่เขียนคำเตือน ทั้งที่คำตอบมีอยู่ในเว็บ) ใช้ severity `resolve` กับ:
+  - ตัวเลข valuation/งบหลักขัดกันระหว่างแหล่ง (P/E, market cap, net income, EPS, จำนวนหุ้น, รายได้) เกิน ~3% — ต้นทางคือ filing ที่เปิดดูได้ ไม่ควรจบที่ "ใช้เป็นช่วง"
+  - item `importance` ≥ 4 ที่ `url` เป็นหน้าผลค้นหา/หน้ารวมข่าว หรือ `source` เป็นหน้ารวม/บล็อกเดี่ยว — เรื่องสำคัญต้องมีต้นทาง
+  - `details.segments` ไม่มี `margin_pct` ที่เป็นกำไรจริง (หายไป หรือ `margin_label` เป็นสัดส่วนรายได้/อย่างอื่นที่ไม่ใช่กำไร) ทั้งที่มี item หมวด `filing` (10-Q/10-K) ในไฟล์และ `notes_md` ไม่ได้บอกว่าดู segment note แล้วไม่มี — บริษัทส่วนใหญ่เปิดเผยกำไรต่อเซกเมนต์ใน filing
+  - field ตามมาตรฐานความละเอียดของ researcher ที่ `notes_md` บอกว่า "หาไม่ได้" โดยไม่บอกว่าค้นที่ไหน/ลอง url อะไรแล้ว หรือมีประโยคผลักไป "รอบถัดไป"
+  ถ้า `coverage.resolve_round` ≥ 1 (ค้นเพิ่มมาแล้วหนึ่งรอบ) ธงพวกนี้ที่ยังเหลือให้ใช้ `flag` แทน แต่ระบุใน `found` ว่า researcher บันทึกหลักฐานการค้นไว้หรือไม่
+- `FLAGS` — วิเคราะห์ต่อได้แต่ต้องมีคำเตือนกำกับ (ส่วนใหญ่อยู่ระดับนี้) — ใช้กับข้อจำกัดที่ค้นเพิ่มก็ไม่หาย (บริษัทไม่เปิดเผย, ตัวเลขเก่าเพราะยังไม่ถึงรอบงบ, ข่าวเดียวกันหลายสำนัก)
 - `CLEAN` — ไม่พบอะไร
 
 ## Output
@@ -41,13 +47,13 @@ path ของ `<DIR>/research.json` และวันที่รัน (`run_
 
 ```json
 {
-  "verdict": "CLEAN | FLAGS | BLOCKING",
+  "verdict": "CLEAN | FLAGS | RESOLVE | BLOCKING",
   "run_date": "YYYY-MM-DD",
   "summary": "1 บรรทัด: กี่ธง ธงหนักสุดคืออะไร",
   "flags": [
     {
       "check": "staleness | contradiction | aggregation | magnitude | completeness | duplication | sourcing",
-      "severity": "blocking | flag",
+      "severity": "blocking | resolve | flag",
       "scope": "field หรือ item ที่มีปัญหา เช่น details.segments / research_items[3] (url)",
       "found": "พบอะไร พร้อมตัวเลขทั้งสองฝั่งถ้าเป็นการเปรียบเทียบ",
       "contaminates": "ตัวเลข/ข้อสรุปไหนของรายงานที่จะรับปัญหานี้ไป เช่น 'net margin ในตาราง 5 ปี', 'fundamentals_score ส่วนการเติบโต', 'เป้า base case ที่คูณ EPS'"
@@ -60,4 +66,4 @@ path ของ `<DIR>/research.json` และวันที่รัน (`run_
 
 **`contaminates` คือคอลัมน์ที่ทำให้ด่านนี้มีค่า** — ธงที่ไม่บอกว่ากระทบอะไรคือธงที่ analyst ทำอะไรต่อไม่ได้ ทุกธงต้องมี
 
-รายงานกลับสั้นๆ: verdict + จำนวนธง + ธง blocking แต่ละข้อหนึ่งบรรทัด
+รายงานกลับสั้นๆ: verdict + จำนวนธง + ธง blocking/resolve แต่ละข้อหนึ่งบรรทัด
