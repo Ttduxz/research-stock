@@ -271,17 +271,31 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
   const rows = rowIdx.length;
   const gapX = cols > 2 ? 44 : 64;
   const nodeW = Math.floor((FW - PAD_X * 2 - gapX * (cols - 1)) / cols);
-  const H = PAD_Y * 2 + rows * NODE_H + (rows - 1) * ROW_GAP;
+  // ข้อความในกล่องตัดเป็นไม่เกิน 2 บรรทัด (ประมาณความกว้างล่วงหน้า — ตัดสินได้ตั้งแต่ฝั่ง server ไม่กระพริบ)
+  // กล่องทุกกล่องในภาพสูงเท่ากัน = สูงตามกล่องที่มีบรรทัดมากสุด
+  const layout = useMemo(
+    () =>
+      new Map(
+        v.nodes.map((n) => [
+          n.id,
+          { t: wrapLines(n.label, TITLE_PX, nodeW - 16), s: n.sub ? wrapLines(n.sub, SUB_PX, nodeW - 14) : null },
+        ])
+      ),
+    [v.nodes, nodeW]
+  );
+  const extra = Math.max(0, ...[...layout.values()].map((l) => l.t.lines.length - 1 + (l.s ? l.s.lines.length - 1 : 0)));
+  const nodeH = NODE_H + extra * 15;
+  const H = PAD_Y * 2 + rows * nodeH + (rows - 1) * ROW_GAP;
 
   const pos = useMemo(() => {
     const m = new Map<string, { x: number; y: number; w: number; h: number; cx: number; cy: number }>();
     for (const n of v.nodes) {
       const x = PAD_X + colIdx.indexOf(n.col) * (nodeW + gapX);
-      const y = PAD_Y + rowIdx.indexOf(n.row) * (NODE_H + ROW_GAP);
-      m.set(n.id, { x, y, w: nodeW, h: NODE_H, cx: x + nodeW / 2, cy: y + NODE_H / 2 });
+      const y = PAD_Y + rowIdx.indexOf(n.row) * (nodeH + ROW_GAP);
+      m.set(n.id, { x, y, w: nodeW, h: nodeH, cx: x + nodeW / 2, cy: y + nodeH / 2 });
     }
     return m;
-  }, [v.nodes, nodeW, gapX, colIdx, rowIdx]);
+  }, [v.nodes, nodeW, nodeH, gapX, colIdx, rowIdx]);
 
   // เส้นสวนทางระหว่างกล่องคู่เดียวกัน (A→B และ B→A) ต้องเยื้องกัน ไม่งั้นทับกันสนิท
   const edges = useMemo(() => {
@@ -347,7 +361,7 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
                 />
                 {/* เส้นวิ่ง (dash ไหล) ซ้อนบนเส้นหลัก — โชว์ทิศทางการไหลตลอดเวลา */}
                 <path d={e.d} fill="none" className="hv-edge-flow" />
-                {e.label && <EdgeLabel d={e.d} text={e.label} go={go} delay={0.9 + i * 0.18} side={e.offset} />}
+                {e.label && <EdgeLabel d={e.d} text={e.label} go={go} delay={0.9 + i * 0.18} side={e.offset} nodeH={nodeH} />}
               </g>
             );
           })}
@@ -363,14 +377,7 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
                 transition={{ duration: 0.5, delay: i * 0.1, ease: EASE }}
               >
                 <rect x={p.x} y={p.y} width={p.w} height={p.h} rx="9" />
-                <text x={p.cx} y={p.y + (n.sub ? 25 : 35)} textAnchor="middle" className="hv-node-t" {...fitText(n.label, 8.2, p.w - 16)}>
-                  {n.label}
-                </text>
-                {n.sub && (
-                  <text x={p.cx} y={p.y + 44} textAnchor="middle" className="hv-node-s" {...fitText(n.sub, 6.9, p.w - 14)}>
-                    {n.sub}
-                  </text>
-                )}
+                <NodeText box={p} fit={layout.get(n.id)!} />
               </motion.g>
             );
           })}
@@ -430,10 +437,72 @@ function Flow({ v, go }: { v: HintVisualFlow; go: boolean }) {
 
 type Box = { x: number; y: number; w: number; h: number; cx: number; cy: number };
 
-/** ข้อความที่น่าจะกว้างเกินกล่อง (ประมาณจากจำนวนตัวอักษร × ความกว้างเฉลี่ย) ให้ SVG บีบให้พอดีแทนที่จะล้นออกนอกกล่อง
- *  — ตัวตรวจจำกัดความยาว label/sub แล้ว แต่ตัวอักษรไทย/ตัวพิมพ์ใหญ่กว้างกว่าค่าเฉลี่ย บางข้อความยังล้นได้ */
-function fitText(text: string, avgCharW: number, maxW: number) {
-  return text.length * avgCharW > maxW ? { textLength: maxW, lengthAdjust: "spacingAndGlyphs" as const } : {};
+/** ต้องตรงกับ font-size ของ .hv-node-t / .hv-node-s ใน globals.css */
+const TITLE_PX = 14;
+const SUB_PX = 11.5;
+
+type Fit = { lines: string[]; px: number };
+
+/** ความกว้างโดยประมาณ: ไม่นับสระบน/ล่าง/วรรณยุกต์ไทย (ซ้อนบนตัวอื่น ไม่กินที่) · เฉลี่ย ~0.6em ต่อตัว */
+function estW(text: string, px: number) {
+  return text.replace(/[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]/g, "").length * 0.6 * px;
+}
+
+/**
+ * ข้อความในกล่องของแผนผัง: ยาวเกินกล่อง → ตัดเป็น 2 บรรทัดที่ช่องว่าง/เครื่องหมาย "/" ใกล้กึ่งกลางที่สุด
+ * ถ้ายังล้นจึงลดขนาดตัวอักษร (ต่ำสุด 85%) — ไม่บีบรูปตัวอักษร
+ * ประวัติ: เดิมบีบรูปตัวอักษรด้วย lengthAdjust (ตัวแบนแปลกๆ) → ลองลดขนาดอย่างเดียว (เล็กจิ๋ว 8px ในภาพ 5 คอลัมน์
+ * ที่กล่องกว้างแค่ ~100px) — ผู้ใช้ทักทั้งสองแบบ 2026-09-21 จึงตัดบรรทัดเป็นหลัก
+ */
+function wrapLines(text: string, px: number, maxW: number): Fit {
+  if (estW(text, px) <= maxW) return { lines: [text], px };
+  let best: [string, string] | null = null;
+  let bestW = Infinity;
+  for (let i = 1; i < text.length - 1; i++) {
+    const c = text[i];
+    if (c !== " " && c !== "/") continue;
+    const l1 = (c === "/" ? text.slice(0, i + 1) : text.slice(0, i)).trim();
+    const l2 = text.slice(i + 1).trim();
+    const w = Math.max(estW(l1, px), estW(l2, px));
+    if (l1 && l2 && w < bestW) {
+      bestW = w;
+      best = [l1, l2];
+    }
+  }
+  const lines = best ?? [text];
+  const widest = Math.max(...lines.map((l) => estW(l, px)));
+  const scale = Math.max(0.85, Math.min(1, maxW / widest));
+  return { lines, px: +(px * scale).toFixed(2) };
+}
+
+function NodeText({ box, fit }: { box: Box; fit: { t: Fit; s: Fit | null } }) {
+  const tLH = fit.t.px * 1.25;
+  const sLH = fit.s ? fit.s.px * 1.3 : 0;
+  const gap = fit.s ? 5 : 0;
+  const block = fit.t.lines.length * tLH + gap + (fit.s ? fit.s.lines.length * sLH : 0);
+  // baseline ของบรรทัดแรก ≈ บนสุดของก้อนข้อความ + 0.8 ของความสูงบรรทัด
+  let y = box.y + (box.h - block) / 2 + tLH * 0.8;
+  const out: React.ReactNode[] = [];
+  fit.t.lines.forEach((l, i) => {
+    out.push(
+      <text key={"t" + i} x={box.cx} y={y} textAnchor="middle" className="hv-node-t" style={fit.t.px !== TITLE_PX ? { fontSize: fit.t.px } : undefined}>
+        {l}
+      </text>
+    );
+    y += tLH;
+  });
+  if (fit.s) {
+    y += gap + (sLH - tLH) * 0.8;
+    fit.s.lines.forEach((l, i) => {
+      out.push(
+        <text key={"s" + i} x={box.cx} y={y} textAnchor="middle" className="hv-node-s" style={fit.s!.px !== SUB_PX ? { fontSize: fit.s!.px } : undefined}>
+          {l}
+        </text>
+      );
+      y += sLH;
+    });
+  }
+  return <>{out}</>;
 }
 
 /** เส้นระหว่างกล่อง: แถวเดียวกัน = แนวนอน, คอลัมน์เดียวกัน = แนวตั้ง, ต่างทั้งคู่ = หักศอก (ออกด้านข้างก่อนแล้วขึ้น/ลง) */
@@ -460,7 +529,7 @@ function edgePath(a: Box, b: Box, offset: number) {
   return `M${sx} ${sy} L${ex - dirX * r} ${sy} Q${ex} ${sy} ${ex} ${sy + dirY * r} L${ex} ${ey}`;
 }
 
-function EdgeLabel({ d, text, go, delay, side }: { d: string; text: string; go: boolean; delay: number; side: number }) {
+function EdgeLabel({ d, text, go, delay, side, nodeH }: { d: string; text: string; go: boolean; delay: number; side: number; nodeH: number }) {
   // จุดกึ่งกลางของเส้น — ใช้ปลายทั้งสองข้าง (พอสำหรับเส้นตรง/หักศอกที่ท่อนยาวสุดคือท่อนแรก)
   const nums = d.match(/-?\d+(\.\d+)?/g)?.map(Number) ?? [];
   const x1 = nums[0], y1 = nums[1];
@@ -472,7 +541,7 @@ function EdgeLabel({ d, text, go, delay, side }: { d: string; text: string; go: 
   const horizontal = Math.abs(y2 - y1) < 2;
   const lx = vertical ? mx + 8 + w / 2 : mx;
   // เส้นแนวนอนระหว่างกล่องข้างกัน: ช่องว่างแคบกว่าป้าย → ยกป้ายขึ้นเหนือ/ลงใต้แถบกล่อง (เส้นสวนทางแยกบน-ล่างตาม side)
-  const ly = horizontal ? (side > 0 ? my + NODE_H / 2 + 12 : my - NODE_H / 2 - 12) : my;
+  const ly = horizontal ? (side > 0 ? my + nodeH / 2 + 12 : my - nodeH / 2 - 12) : my;
   return (
     <motion.g className="hv-edge-label" initial={{ opacity: 0 }} animate={go ? { opacity: 1 } : { opacity: 0 }} transition={{ delay }}>
       <rect x={lx - w / 2} y={ly - 10} width={w} height={20} rx="10" />
@@ -565,9 +634,12 @@ function Timeline({ v, go }: { v: HintVisualTimeline; go: boolean }) {
   const [active, setActive] = useState<number | null>(null);
   const shown = active ?? v.items.length - 1;
   const cur = v.items[shown];
+  // จุดทุกจุดอยู่ในช่องสูงเท่ากัน (ขนาดจุดใหญ่สุด) เส้นจึงผ่านกลางจุดพอดีเสมอ
+  // เดิมเส้นอยู่ที่ top 74px ตายตัว (คิดจากจุดใหญ่สุด) — ไทม์ไลน์ที่ไม่มีค่า จุดเล็ก 16px เส้นเลยตกไปทับข้อความใต้จุด
+  const slot = hasValues && total > 0 ? 48 : 16;
   return (
     <div className="hv-body">
-      <div className="hv-tl" role="list">
+      <div className="hv-tl" role="list" style={{ ["--tl-slot" as string]: `${slot}px` }}>
         <div className="hv-tl-line">
           <motion.i initial={{ width: 0 }} animate={go ? { width: "100%" } : { width: 0 }} transition={{ duration: 1.2, ease: EASE }} />
         </div>
@@ -586,13 +658,15 @@ function Timeline({ v, go }: { v: HintVisualTimeline; go: boolean }) {
               aria-label={`${it.date} ${it.label}${it.value != null ? " " + it.value : ""}`}
             >
               <span className="hv-tl-date">{fmtDate(it.date)}</span>
-              <motion.span
-                className="hv-tl-dot"
-                style={{ width: size, height: size }}
-                initial={{ scale: 0, opacity: 0 }}
-                animate={go ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-                transition={{ duration: 0.45, delay: 0.25 + i * 0.28, ease: [0.34, 1.4, 0.64, 1] }}
-              />
+              <span className="hv-tl-slot">
+                <motion.span
+                  className="hv-tl-dot"
+                  style={{ width: size, height: size }}
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={go ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
+                  transition={{ duration: 0.45, delay: 0.25 + i * 0.28, ease: [0.34, 1.4, 0.64, 1] }}
+                />
+              </span>
               <span className="hv-tl-l">{it.label}</span>
               {it.value != null && (
                 <span className="hv-tl-v">

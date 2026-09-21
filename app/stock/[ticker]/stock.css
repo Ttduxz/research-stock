@@ -1,0 +1,259 @@
+/* ============================================================
+   หน้าหุ้น /stock/[ticker] — "สรุปก่อน รายละเอียดตอนกด"
+   import จาก app/stock/[ticker]/page.tsx เท่านั้น · คลาสใหม่ขึ้นต้น sp- · ทุกกฎครอบด้วย .sp ไม่รั่วไปหน้าอื่น
+   hero ใช้ภาษาภาพเดียวกับการ์ด /watchlist (.wc-*, .pz*, --ps จาก globals.css)
+   ============================================================ */
+
+/* ---------- hero ---------- */
+.sp .crumbs { margin-bottom: 14px; }
+
+.sp-hero {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+}
+/* ขอบบนสีตามสถานะแผน — เหมือน .wc::before */
+.sp-hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--ps); opacity: 0.9; }
+.sp-hero.ps-no-action::before, .sp-hero.ps-none::before { opacity: 0.35; }
+
+.sp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.sp-id { display: grid; min-width: 0; }
+.sp .sp-ticker {
+  margin: 0;
+  font-family: var(--font-data);
+  font-size: clamp(30px, 4.4vw, 40px);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+.sp-name { margin: 4px 0 0; font-size: 13.5px; color: var(--text-dim); line-height: 1.5; }
+.sp-head .watch-btn { flex: none; }
+
+.sp-pricerow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.sp-price { font-family: var(--font-data); font-size: 26px; font-weight: 600; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.sp-cur { font-size: 14px; font-weight: 400; color: var(--text-dim); }
+.sp .sp-pricerow .wc-move { font-size: 13px; }
+.sp .wc-asof { font-size: 12px; }
+.sp-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.sp-statusrow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.sp .sp-statusrow .wc-status { font-size: 14.5px; }
+.sp .sp-statusrow .wc-dot { width: 10px; height: 10px; }
+.sp-hero.ps-no-action .wc-status, .sp-hero.ps-none .wc-status { font-weight: 500; }
+
+/* แถบไม้ (components/PlanZone.tsx) — ขยายช่องให้เลขไม้/ป้ายราคาใหญ่ถึง 12px ได้ */
+.sp .pz { font-size: 13px; }
+.sp .pzb { padding-bottom: 19px; }
+.sp .pzb-track { height: 20px; }
+.sp .pzb-zone { font-size: 12px; }
+.sp .pzb-now { height: 26px; }
+.sp .pzb-now-label { font-size: 12px; }
+
+.sp-quote .wc-k { font-size: 12.5px; }
+.sp-quote .wc-action { font-size: 15px; }
+
+/* ตัวเลขหลัก — คะแนน/ความเสี่ยง/ช่วงเป้าราคา (ทั้งหมดมีอยู่ในรายงานแล้ว) */
+.sp-keys {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+  gap: 1px;
+  margin: 0;
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.sp-key { display: grid; gap: 2px; padding: 8px 12px; background: var(--bg-card); min-width: 0; }
+.sp-key dt { font-size: 12px; color: var(--text-faint); }
+.sp-key dd { margin: 0; font-family: var(--font-data); font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.sp-t-bear dd { color: var(--red); }
+.sp-t-base dd { color: var(--accent); }
+.sp-t-bull dd { color: var(--green); }
+
+.sp-foot { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--text-faint); }
+
+/* ---------- หัวข้อพับได้ (components/StockSections.tsx) ---------- */
+.sp-secs { margin-top: 28px; }
+.sp-secs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.sp .sp-secs-title { margin: 0; padding: 0; border: 0; font-size: 17px; font-weight: 600; }
+.sp .sp-secs-title::before { display: none; }
+.sp-toggle-all {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sp-toggle-all:hover { color: var(--accent); border-color: var(--accent); }
+.sp-toggle-all:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.sp-sec {
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-card);
+  scroll-margin-top: 90px;
+}
+.sp-sec > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  cursor: pointer;
+  list-style: none;
+  border-radius: 12px;
+}
+.sp-sec > summary::-webkit-details-marker { display: none; }
+.sp-sec > summary:hover { background: var(--bg-hover); }
+.sp-sec > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sp-sec[open] > summary { border-bottom: 1px solid var(--rule); border-radius: 12px 12px 0 0; }
+.sp-sec-text { display: grid; gap: 2px; min-width: 0; }
+.sp .sp-sec-title { margin: 0; padding: 0; border: 0; font-size: 16px; font-weight: 600; line-height: 1.45; scroll-margin-top: 90px; }
+.sp .sp-sec-title::before { display: none; }
+.sp-sec-meta { font-size: 13px; color: var(--text-faint); line-height: 1.5; }
+/* ลูกศรในวงกลม — บอกชัดว่ากดเปิดได้ (ผู้ใช้เคยบอกว่า <details> เดิม "ไม่มี UI บอกว่าพับได้") */
+.sp-chev {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  color: var(--text-dim);
+  transition: transform 0.18s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.sp-sec > summary:hover .sp-chev { color: var(--accent); border-color: var(--accent); }
+.sp-sec[open] > summary .sp-chev { transform: rotate(90deg); }
+.sp-sec-body { padding: 16px 16px 8px; min-width: 0; }
+.sp-sec-body > .card:last-child { margin-bottom: 8px; }
+.sp-sec-body .rail { margin: 16px 0 8px; }
+/* หัวข้อย่อยของ research note (ทำธุรกิจอะไร / งบ 5 ปี / ...) ในหัวข้อพับ — เล็กกว่า h2 หลักของหน้า */
+.sp-sec-body h2 { font-size: 18px; margin: 34px 0 12px; padding-top: 16px; }
+.sp-sec-body > h2:first-child { margin-top: 4px; padding-top: 0; border-top: 0; }
+.sp-sec-body > h2:first-child::before { display: none; }
+.sp-h4 { margin: 14px 0 0; font-size: 14px; }
+.sp-plan-full { margin: 0 0 10px; font-size: 14px; color: var(--text-dim); }
+.sp .md { overflow-wrap: anywhere; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sp-chev { transition: none; }
+}
+
+/* ---------- ขนาดตัวอักษรขั้นต่ำ: จอคอม 12px ----------
+   รายชื่อมาจากการสแกน globals.css หา class ที่หน้านี้ใช้และตั้งไว้ต่ำกว่า 12px */
+.sp { --eyebrow-size: 12px; }
+.sp .stat-k,
+.sp .sc-name,
+.sp .tr-name,
+.sp .meter-top,
+.sp .ladder-k,
+.sp .ladder-sub,
+.sp .rv-eyebrow,
+.sp .cmp-label,
+.sp .cmp-src a,
+.sp .cmp-origin,
+.sp .rv-action-label,
+.sp .rv-hist-lead,
+.sp .tb-lead,
+.sp .tb-k,
+.sp .wc-tag,
+.sp .toc-numbered a::before { font-size: 12px; }
+/* ป้าย "ราคาปัจจุบัน" ของ ScenarioLadder คือราคา ณ วันทำรายงาน (hero แสดงราคาสดแล้ว) — เปลี่ยนคำให้ไม่ชนกัน */
+.sp .ladder-price::after { content: "ราคาตอนทำรายงาน"; font-size: 12px; letter-spacing: 0.02em; text-transform: none; }
+.sp .md code, .sp .md-inline code { font-size: max(12px, 0.85em); }
+/* กราฟงบ (components/FinChart.tsx) เป็น SVG viewBox กว้าง 720 — กว้างขั้นต่ำ 720px (เลื่อนในกล่องเองบนมือถือ)
+   ตัวหนังสือในกราฟจึงไม่ถูกย่อ แล้วยกขนาดตัวเลขแกน/ค่า 11–11.5 ขึ้นเป็น 12 */
+.sp .chart-scroll svg { min-width: 720px; }
+.sp .chart-scroll svg g[font-size="11"],
+.sp .chart-scroll svg g[font-size="11.5"] { font-size: 12px; }
+
+/* ---------- มือถือ ≤640px: ขั้นต่ำ 13px ---------- */
+@media (max-width: 640px) {
+  .sp { --eyebrow-size: 13px; }
+  .sp .crumbs { margin-bottom: 10px; }
+  .sp-hero { padding: 14px 14px 12px; gap: 10px; border-radius: 12px; }
+  .sp .sp-ticker { font-size: 28px; }
+  .sp-name { font-size: 13px; }
+  .sp-price { font-size: 23px; }
+  .sp-keys { grid-template-columns: repeat(3, 1fr); }
+  .sp-key { padding: 7px 9px; }
+  .sp-key dd { font-size: 14px; }
+  .sp .pz-text { flex-direction: column; gap: 1px; }
+  .sp-quote .wc-action { font-size: 15px; line-height: 1.75; }
+
+  .sp-secs { margin-top: 22px; }
+  .sp-sec > summary { padding: 12px 12px 12px 14px; }
+  .sp .sp-sec-title { font-size: 15.5px; }
+  .sp-sec-body { padding: 12px 10px 4px; }
+  .sp-sec-body .card { padding: 16px 14px; }
+  .sp-sec-body .raw-item { padding: 0; }
+  .sp-sec-body .raw-item summary { padding: 14px 36px 14px 14px; }
+  .sp-sec-body .raw-item summary::after { right: 16px; top: 22px; }
+  .sp-sec-body h2 { font-size: 17.5px; margin: 28px 0 10px; }
+
+  .sp .stat-k,
+  .sp .sc-name,
+  .sp .tr-name,
+  .sp .meter-top,
+  .sp .ladder-k,
+  .sp .ladder-sub,
+  .sp .rv-eyebrow,
+  .sp .cmp-label,
+  .sp .cmp-src a,
+  .sp .cmp-origin,
+  .sp .rv-action-label,
+  .sp .rv-hist-lead,
+  .sp .tb-lead,
+  .sp .tb-k,
+  .sp .wc-tag,
+  .sp .wc-asof,
+  .sp .wc-k,
+  .sp .wc-name,
+  .sp .wc-more,
+  .sp .wc-move,
+  .sp .wc-status,
+  .sp .pz,
+  .sp .pzb-zone,
+  .sp .pzb-now-label,
+  .sp .badge,
+  .sp .card .src,
+  .sp .scenario .sc-prob,
+  .sp .theory-meta,
+  .sp .tr-alloc,
+  .sp .stat-n,
+  .sp .seg-meta,
+  .sp .fin-tbl caption,
+  .sp .fin-tbl thead th,
+  .sp .legend,
+  .sp .rv-move,
+  .sp .ck-tally,
+  .sp .ck-legend,
+  .sp .cmp-none,
+  .sp .rv-action-when,
+  .sp .rv-action-detail > summary,
+  .sp .rvh-date,
+  .sp .price-when,
+  .sp .price-note,
+  .sp .sp-foot,
+  .sp .sp-key dt,
+  .sp .sp-quote .wc-k,
+  .sp .toc-numbered a::before,
+  .sp .ladder-price::after { font-size: 13px; }
+  .sp .md code, .sp .md-inline code { font-size: max(13px, 0.85em); }
+  .sp .pzb { padding-bottom: 20px; }
+  .sp .pzb-track { height: 22px; }
+  .sp .pzb-now { height: 28px; }
+  .sp .chart-scroll svg g[font-size="11"],
+  .sp .chart-scroll svg g[font-size="11.5"],
+  .sp .chart-scroll svg g[font-size="12"] { font-size: 13px; }
+}

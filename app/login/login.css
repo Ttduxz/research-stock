@@ -1,0 +1,55 @@
+/* ============================================================
+   หน้า landing สำหรับคนที่ยังไม่ login (/login) — คลาส lg-* เท่านั้น
+   โทนสำนักวิจัย: ตัวหนังสือเรียบ สีน้อย ตัวเลขมีนิยาม + วันที่ ไม่มีกล่องสีฉูดฉาด
+   mobile-first: ปุ่ม login ต้องอยู่ในจอแรกของมือถือ ตัวหนังสือเล็กสุด 13px
+   ============================================================ */
+
+.lg { max-width: 1040px; margin: 8px auto 0; }
+
+.lg-top { display: grid; gap: 28px; }
+.lg-eyebrow { margin: 0 0 14px; font-size: 13px; letter-spacing: 0.04em; color: var(--text-faint); }
+.lg-title { font-size: 26px; line-height: 1.4; font-weight: 700; letter-spacing: -0.01em; margin: 0 0 14px; max-width: 22ch; }
+.lg-lead { color: var(--text-dim); font-size: 16px; line-height: 1.75; margin: 0 0 26px; max-width: 46ch; }
+
+.lg-cta { max-width: 360px; }
+.lg-btn {
+  display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%;
+  padding: 13px 18px; border-radius: 8px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f;
+  font: inherit; font-size: 15.5px; font-weight: 600; cursor: pointer;
+  transition: box-shadow 0.15s ease, background 0.15s ease;
+}
+.lg-btn:hover { background: #f8f9fa; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); }
+.lg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.lg-g { width: 18px; height: 18px; flex: none; }
+.lg-cta-note { margin: 10px 0 0; font-size: 13px; color: var(--text-faint); }
+
+/* ตารางสถิติ — แถวละตัวเลข ป้ายซ้าย ค่าขวา แบบหน้าสรุปในรายงานวิจัย */
+.lg-ledger { border: 1px solid var(--border); border-radius: 10px; background: var(--bg-card); padding: 18px 20px 16px; align-self: start; }
+.lg-ledger-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--text-faint); padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.lg-ledger-head span:first-child { color: var(--text-dim); font-weight: 600; }
+.lg-ledger dl { margin: 0; }
+.lg-ledger-row { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding: 13px 0; border-bottom: 1px solid var(--rule); }
+.lg-ledger-row dt { font-size: 14.5px; color: var(--text-dim); }
+.lg-ledger-row dd { margin: 0; font-family: var(--font-data); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--text); }
+.lg-ledger-note { margin: 12px 0 0; font-size: 13px; line-height: 1.65; color: var(--text-faint); }
+
+/* กระบวนการ — ลำดับตัวเลข 01-05 เส้นบางคั่น ไม่มีพื้นสี */
+.lg-process { margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--border); }
+.lg .lg-h2 { font-size: 15px; font-weight: 600; color: var(--text-dim); margin: 0 0 18px; padding: 0; border: 0; }
+.lg .lg-h2::before { display: none; }
+.lg-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.lg-steps li { display: grid; grid-template-columns: 34px 1fr; column-gap: 12px; row-gap: 2px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.lg-steps li:first-child { border-top: 0; padding-top: 0; }
+.lg-step-n { grid-row: span 2; font-family: var(--font-data); font-size: 13px; color: var(--accent); padding-top: 2px; }
+.lg-steps b { font-size: 15px; font-weight: 600; }
+.lg-step-d { font-size: 14px; line-height: 1.6; color: var(--text-dim); }
+
+@media (min-width: 900px) {
+  .lg { margin-top: 40px; }
+  .lg-top { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 56px; align-items: start; }
+  .lg-title { font-size: 34px; }
+  .lg-lead { font-size: 17px; }
+  .lg-steps { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; }
+  .lg-steps li { display: flex; flex-direction: column; gap: 6px; padding: 14px 0 0; border-top: 1px solid var(--border); }
+  .lg-steps li:first-child { border-top: 1px solid var(--border); padding-top: 14px; }
+}

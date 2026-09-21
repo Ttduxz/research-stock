@@ -230,39 +230,112 @@ export default function MotionLayer() {
 
     /* ---------- ติดป้ายให้ element ที่ยังไม่เคยถูกจัดการ ---------- */
 
+    /* ห้ามแตะ attribute/text ของ element ที่ React ยังไม่ได้ hydrate
+     * effect นี้รันหลัง commit ของ root ก็จริง แต่เนื้อหาใน Suspense boundary (page / loading.tsx /
+     * ส่วนที่ stream มาทีหลัง) ถูก hydrate แยกทีหลังอีกรอบ — ถ้าติด data-reveal / style --d ให้ก่อน
+     * React จะเจอ attribute ที่ server ไม่ได้ render แล้วฟ้อง hydration mismatch ("ไม่ patch ให้" = เสี่ยงวูบ)
+     * text ที่ count-up แก้ก็พังแบบเดียวกัน
+     * วิธีรู้ว่า hydrate แล้ว: React ผูก fiber ไว้กับ DOM node ด้วย key "__reactFiber$..." ตอน claim node
+     * ระหว่าง hydrate (ตรวจ props ของ node นั้นเสร็จในจังหวะเดียวกัน) — node ที่ยังไม่มี key = ยังรอ
+     * → ข้ามไปก่อนแล้ววนกลับมาดูใหม่ด้วย setTimeout (ไม่ใช้ rAF — แท็บที่ถูกซ่อนไม่มีเฟรม)
+     * ระหว่างรอ element ไม่มี data-reveal = มองเห็นตามปกติ ไม่มีทางถูกซ่อน */
+    const hasFiber = (el: Element) => Object.keys(el).some((k) => k.startsWith("__reactFiber$"));
+    // ถ้า React รุ่นหน้าเปลี่ยนชื่อ key ภายใน (body เป็นของ React ใน root layout ต้องมี key เสมอ)
+    // ให้ถอยไปใช้พฤติกรรมเดิม ดีกว่า motion ไม่ทำงานเลย
+    const fiberProbeWorks = hasFiber(document.body);
+    const isHydrated = (el: Element) => !fiberProbeWorks || hasFiber(el);
+
+    const mountedAt = performance.now();
+    // รอ hydrate ได้นานสุดเท่านี้ เกินแล้วถือว่า node ที่เหลือไม่ใช่ของ React (เช่นใน dangerouslySetInnerHTML)
+    const HYDRATE_WAIT_MAX = 15000;
+    const pendingSince = new WeakMap<Element, number>(); // เจอครั้งแรกตอนยังไม่ hydrate เมื่อไร
+    let recheck = 0;
+
+    const inViewport = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return r.top < window.innerHeight && r.bottom > 0;
+    };
+
     const tag = () => {
+      // ตาข่ายนิรภัยปิด motion ไปแล้ว (ไม่มีเฟรม) — ไม่ต้องติดป้ายอะไรอีก
+      if (!root.classList.contains("motion-ready")) return;
+      const now = performance.now();
+      const givingUp = now - mountedAt > HYDRATE_WAIT_MAX;
+      let waiting = false;
+
+      /** true = แตะได้แล้ว / false = ยังรอ hydrate (จดเวลาไว้ แล้วนัดตรวจใหม่ท้ายฟังก์ชัน) */
+      const ready = (el: Element) => {
+        if (isHydrated(el)) return true;
+        if (!pendingSince.has(el)) pendingSince.set(el, now);
+        waiting = true;
+        return false;
+      };
+
       document.querySelectorAll<HTMLElement>(REVEAL_SELECTOR).forEach((el) => {
         if (el.dataset.reveal !== undefined || el.dataset.rin !== undefined) return;
         if (el.closest(".md")) return; // หัวข้อ/ย่อหน้าใน markdown ไม่ต้อง reveal ทีละอัน
+        if (givingUp && !isHydrated(el)) {
+          // ไม่ใช่ node ของ React — แตะได้ไม่ชน hydration; ใส่แค่ data-rin ให้กราฟ/แถบข้างในแสดงเต็ม
+          el.dataset.rin = "";
+          return;
+        }
+        if (!ready(el)) return;
+        // แท็บถูกซ่อน = IO ไม่ยิง ถ้าติดป้ายตอนนี้เนื้อหาจะค้างซ่อน — ไว้ติดตอนกลับมาเห็นแท็บ (onVisibility)
+        if (document.hidden) return;
+        const since = pendingSince.get(el);
+        if (since !== undefined && now - since > 400 && inViewport(el)) {
+          // hydrate ช้าจนผู้ใช้เห็นเนื้อหานี้ไปแล้ว — ซ่อนแล้ว fade ใหม่จะดูเป็นอาการวูบ แสดงเลย
+          el.dataset.rin = "";
+          return;
+        }
         el.dataset.reveal = "";
         revealIO.observe(el);
       });
 
       document.querySelectorAll<HTMLElement>(COUNT_SELECTOR).forEach((el) => {
         if (el.dataset.cu !== undefined) return;
+        if (givingUp && !isHydrated(el)) return; // ไม่นับ ปล่อยเป็นค่าจริง
+        if (!ready(el)) return;
         el.dataset.cu = "";
         countIO.observe(el);
       });
 
       document.querySelectorAll<HTMLElement>(".chart-card").forEach((el) => {
         if (el.dataset.chart !== undefined) return;
+        if (givingUp && !isHydrated(el)) {
+          el.dataset.chart = "";
+          el.dataset.chartIn = ""; // แท่งกราฟแสดงเต็มทันที ไม่มีอนิเมชัน
+          return;
+        }
+        if (!ready(el)) return;
         el.dataset.chart = "";
         chartIO.observe(el);
       });
+
+      if (waiting && !recheck) {
+        recheck = window.setTimeout(() => {
+          cleanupTimers.delete(recheck);
+          recheck = 0;
+          tag();
+        }, 120);
+        cleanupTimers.add(recheck);
+      }
     };
 
     tag();
 
-    // เนื้อหาที่ render ใหม่ฝั่ง client (ผลค้นหา, ปุ่มกรอง insights, เปลี่ยนหน้าแบบ client nav)
-    // ต้องถูกติดป้ายเพิ่ม — รวบการเรียกไว้เฟรมละครั้งกัน layout thrash
-    let queued = false;
+    // เนื้อหาที่ render ใหม่ฝั่ง client (ผลค้นหา, ปุ่มกรอง insights, เปลี่ยนหน้าแบบ client nav, ส่วนที่ stream มาทีหลัง)
+    // ต้องถูกติดป้ายเพิ่ม — รวบการเรียกไว้รอบละครั้งกัน layout thrash
+    // ใช้ setTimeout แทน rAF: แท็บที่ถูกซ่อนไม่มีเฟรม ของที่เข้ามาใหม่จะไม่ถูกจัดการเลย
+    let queued = 0;
     const mo = new MutationObserver(() => {
       if (queued) return;
-      queued = true;
-      requestAnimationFrame(() => {
-        queued = false;
+      queued = window.setTimeout(() => {
+        cleanupTimers.delete(queued);
+        queued = 0;
         tag();
-      });
+      }, 16);
+      cleanupTimers.add(queued);
     });
     mo.observe(document.body, { childList: true, subtree: true });
 
@@ -293,8 +366,10 @@ export default function MotionLayer() {
 
     // สลับแท็บออกไป = เบราว์เซอร์หยุดส่งเฟรม ตัวเลขที่นับค้างอยู่จะโชว์ค่าผิด
     // → บังคับให้เขียนค่าจริงกลับทันทีที่หน้าถูกซ่อน
+    // กลับมาเห็นแท็บ = ติดป้ายของที่ข้ามไว้ตอนแท็บถูกซ่อน
     const onVisibility = () => {
       if (document.hidden) finishAllCounts();
+      else tag();
     };
     document.addEventListener("visibilitychange", onVisibility);
 

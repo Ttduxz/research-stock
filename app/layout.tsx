@@ -32,9 +32,32 @@ const plexMono = IBM_Plex_Mono({
   variable: "--font-mono",
 });
 
+// ลิงก์ที่แชร์ใน LINE/Facebook — crawler ไม่ได้ login จึงถูก redirect ไป /login เสมอ และเห็นแค่ข้อมูลชุดนี้ + app/opengraph-image.tsx
+// (ไม่ใส่ title.template: หน้าต่างๆ ตั้ง title แบบ "X | Tee Stock Research" ไว้เองแล้ว ใส่ template จะได้ชื่อเว็บซ้ำสองรอบ)
+const SITE_NAME = "Tee Stock Research";
+const SITE_DESC =
+  "ทีมวิจัยหุ้นด้วย AI เขียนรายงานวิเคราะห์หุ้นเป็นภาษาไทย แล้วกลับมาตรวจคำทำนายของตัวเองทุกสัปดาห์ด้วยหลักฐานที่มีลิงก์ — เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน";
+// URL เต็มของภาพ og — บน Vercel ใช้โดเมน production (ตัวแปรที่ Vercel ใส่ให้เอง) นอกนั้นเป็น localhost
+const SITE_URL = process.env.VERCEL_PROJECT_PRODUCTION_URL
+  ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+  : `http://localhost:${process.env.PORT ?? 3000}`;
+
 export const metadata: Metadata = {
-  title: "Tee Stock Research",
-  description: "ระบบวิเคราะห์หุ้น: research → analyze → theorize",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_NAME,
+  description: SITE_DESC,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "th_TH",
+    title: `${SITE_NAME} — วิจัยหุ้นด้วย AI ที่ตรวจตัวเองทุกสัปดาห์`,
+    description: SITE_DESC,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — วิจัยหุ้นด้วย AI ที่ตรวจตัวเองทุกสัปดาห์`,
+    description: SITE_DESC,
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -1,0 +1,185 @@
+/* ============================================================
+   หน้าแรก (app/page.tsx) — class ขึ้นต้นด้วย hm- ทั้งหมด ไม่แตะ globals.css
+   การ์ดหุ้นหน้าตาเดียวกับ /watchlist (.wc — แบบที่ผู้ใช้เลือก) แต่ไม่มีแถบไม้/สถานะแผน
+   ตัวอักษรไม่ต่ำกว่า 12px บนจอคอม / 13px ที่ ≤640px · ห้ามล้นแนวนอนที่ 375px
+   ============================================================ */
+
+/* ---- hero ---- */
+.hm-hero {
+  margin: 4px 0 30px;
+  padding: 20px 22px 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--accent-wash), transparent 60%), var(--bg-card);
+}
+.hm .hm-hero-title {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.5;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  max-width: 40ch;
+}
+.hm-hl { color: var(--accent); }
+.hm-hero-sub { margin: 6px 0 0; font-size: 14px; color: var(--text-dim); }
+.hm-hero-sub a { color: var(--accent); font-weight: 600; }
+.hm-stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.hm-stat {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1 1 150px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-sunken);
+  color: var(--text);
+  text-decoration: none;
+}
+.hm-stat.is-link { border-color: rgba(95, 157, 240, 0.4); transition: border-color 0.15s ease, background 0.15s ease; }
+.hm-stat.is-link:hover { border-color: var(--accent); background: var(--accent-wash); }
+.hm-stat-v { font-family: var(--font-data); font-size: 22px; font-weight: 700; line-height: 1.2; }
+.hm-stat.is-link .hm-stat-v { color: var(--accent); }
+.hm-stat-l { font-size: 12.5px; color: var(--text-dim); line-height: 1.45; }
+.hm-hero-note { margin: 12px 0 0; font-size: 12px; color: var(--text-faint); }
+
+/* ---- หัว section (ไม่ใช้ h2 แบบเส้นคาดของ globals — หน้านี้ต้องแน่น) ---- */
+.hm-sec-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px; margin-bottom: 12px; }
+.hm .hm-sec-title { margin: 0; padding: 0; border: 0; font-size: 20px; line-height: 1.4; }
+.hm .hm-sec-title::before { display: none; }
+.hm-sec-link { font-size: 13px; color: var(--accent); white-space: nowrap; }
+
+/* ---- ค้นหา + ชิปกลุ่ม ---- */
+.hm .hm-search { margin: 0 0 10px; }
+.hm .hm-search input { min-width: 0; }
+.hm-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.hm-chip {
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.hm-chip:hover { border-color: var(--border-strong); color: var(--text); }
+.hm-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hm-chip.on { color: var(--accent); border-color: rgba(95, 157, 240, 0.5); background: var(--accent-wash); }
+.hm-chip-n { font-family: var(--font-data); font-size: 12px; color: var(--text-faint); margin-left: 2px; }
+.hm-chip.on .hm-chip-n { color: inherit; }
+
+/* ---- กลุ่ม + กริดการ์ด ---- */
+.hm-group { margin-top: 20px; }
+.hm .hm-group-title { margin: 0 0 8px; padding: 0; border: 0; font-size: 15px; font-weight: 600; color: var(--text-dim); }
+.hm-group-n { font-family: var(--font-data); font-size: 12.5px; font-weight: 400; color: var(--text-faint); margin-left: 4px; }
+/* align-items: stretch (ค่าเริ่มต้น) = การ์ดในแถวเดียวกันสูงเท่ากัน · minmax(0,…) กันชื่อยาวดันกริดล้น */
+.hm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+
+.hm-card {
+  position: relative;
+  min-width: 0;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hm-card:hover { border-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
+.hm-card-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  height: 100%;
+  padding: 12px 14px 10px;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 12px;
+}
+.hm-card-link:hover { color: var(--text); }
+.hm-card-link:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.hm-ticker {
+  font-family: var(--font-data);
+  font-weight: 700;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  padding-right: 30px; /* เว้นที่ให้ ★ */
+}
+.hm-card:hover .hm-ticker { color: var(--accent); }
+.hm-name { font-size: 12.5px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hm-pricerow { display: flex; align-items: baseline; gap: 5px; margin-top: 6px; min-height: 21px; }
+.hm-price { font-family: var(--font-data); font-size: 16px; font-weight: 600; line-height: 1.3; }
+.hm-ccy { font-size: 12px; color: var(--text-faint); }
+.hm-sub { display: block; min-height: 20px; }
+.hm-move { display: inline-block; font-family: var(--font-data); font-size: 12px; padding: 0 6px; border-radius: 5px; line-height: 1.65; }
+.hm-move.up { color: var(--green); background: var(--green-wash); }
+.hm-move.dn { color: var(--red); background: var(--red-wash); }
+.hm-asof { font-size: 12px; color: var(--text-faint); }
+/* margin-top:auto ดันมุมมองลงล่างสุดทุกใบ — การ์ดในแถวเดียวกันเส้นล่างตรงกัน */
+.hm-foot { display: flex; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--rule); }
+.hm-foot .badge { margin-top: 0; }
+
+/* ★ วางทับขวาบน นอก <a> — แบบเดียวกับ .wc .watch-btn */
+.hm-star { position: absolute; top: 8px; right: 8px; z-index: 1; }
+.hm-star .watch-btn { border-color: transparent; background: transparent; padding: 2px 6px; font-size: 16px; }
+.hm-star .watch-btn:hover { background: var(--yellow-wash); }
+.hm-star .watch-btn.on { background: transparent; }
+
+/* ---- insights แบบย่อ (ท้ายหน้า) ---- */
+.hm-ins { margin-top: 36px; }
+.hm-ins-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.hm-ins-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 4px 10px 12px;
+  border-bottom: 1px solid var(--rule);
+  border-left: 2px solid var(--accent);
+  color: var(--text);
+  text-decoration: none;
+}
+.hm-ins-row[data-dir="positive"] { border-left-color: var(--green); }
+.hm-ins-row[data-dir="negative"] { border-left-color: var(--red); }
+.hm-ins-row:hover { background: var(--bg-hover); color: var(--text); }
+.hm-ins-row:hover .hm-ins-title { color: var(--accent); }
+.hm-ins-title { flex: 1 1 260px; min-width: 0; font-size: 14.5px; font-weight: 600; line-height: 1.55; }
+.hm-ins-meta { flex: none; }
+
+@media (hover: none) {
+  .hm-card:hover { transform: none; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hm-card { transition: none; }
+  .hm-card:hover { transform: none; }
+}
+
+/* ---- มือถือ: 2 คอลัมน์ (หน้าเดิมยาว ~13 จอ) · ตัวอักษรขั้นต่ำ 13px ---- */
+@media (max-width: 640px) {
+  .hm-hero { padding: 16px 14px 12px; margin-bottom: 24px; }
+  .hm .hm-hero-title { font-size: 19px; }
+  .hm-hero-sub { font-size: 14px; }
+  .hm-stats { gap: 6px; }
+  .hm-stat { flex: 1 1 0; padding: 8px 10px; }
+  .hm-stat-v { font-size: 19px; }
+  .hm-stat-l, .hm-hero-note { font-size: 13px; }
+  .hm .hm-sec-title { font-size: 19px; }
+  .hm-sec-link { font-size: 13px; white-space: normal; }
+  .hm-chip { font-size: 13.5px; padding: 5px 11px; }
+  .hm-chip-n { font-size: 13px; }
+  .hm-group { margin-top: 16px; }
+  .hm .hm-group-title { font-size: 15px; }
+  .hm-group-n { font-size: 13px; }
+  .hm-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .hm-card-link { padding: 10px 11px 8px; }
+  .hm-ticker { font-size: 18px; padding-right: 28px; }
+  .hm-star { top: 5px; right: 4px; }
+  .hm-name, .hm-ccy, .hm-asof, .hm-move { font-size: 13px; }
+  .hm-price { font-size: 15px; }
+  .hm-pricerow { flex-wrap: wrap; gap: 0 5px; }
+  .hm-ins-title { font-size: 15px; flex-basis: 100%; }
+}

@@ -1,0 +1,52 @@
+/* ============================================================
+   หน้า /best-price — คลาส bp-* + ขยายตัวหนังสือจิ๋วของคลาสร่วม เฉพาะในหน้านี้ (scope ด้วย .bp-page)
+   เกณฑ์: เล็กสุด 12px บนจอกว้าง / 13px บนมือถือ (≤640px) — ไม่แตะ globals.css เพราะหน้าอื่นใช้คลาสเดียวกัน
+   ============================================================ */
+
+.bp-status { margin: -12px 0 22px; font-size: 13px; color: var(--text-faint); font-family: var(--font-data); }
+.bp-status a { color: var(--accent); }
+
+/* น้ำหนักคะแนน: ชื่อเกณฑ์ + วิธีคิดบรรทัดล่าง (เดิมเป็น inline style 12.5px) */
+.bp-w-label { display: block; color: var(--text); }
+.bp-w-how { display: block; font-size: 13px; line-height: 1.65; }
+
+/* วิธีคิดละเอียด — พับไว้ ส่วนใหญ่ไม่ต้องอ่าน */
+.bp-more { margin: 14px 0 0; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg-card); }
+.bp-more summary { cursor: pointer; padding: 12px 18px; font-size: 14.5px; font-weight: 600; color: var(--text-dim); }
+.bp-more summary:hover { color: var(--text); }
+.bp-more[open] summary { border-bottom: 1px solid var(--rule); }
+.bp-more ul { margin: 0; padding: 12px 18px 14px 36px; display: grid; gap: 8px; font-size: 14px; line-height: 1.75; color: var(--text-dim); }
+.bp-more b { color: var(--text); }
+
+/* ---- ตัวหนังสือจิ๋ว → ≥12px ---- */
+.bp-page .stat-k,
+.bp-page .rank-score-l,
+.bp-page .fin-tbl thead th,
+.bp-page .rb-note,
+.bp-page .ladder-k,
+.bp-page .ladder-sub,
+.bp-page .stat-chg,
+.bp-page .badge,
+.bp-page .rank-tbl-no,
+.bp-page .rank-tbl .stat-n { font-size: 12px; }
+.bp-page .ladder-price::after { font-size: 12px; letter-spacing: 0.04em; }
+.bp-page .rank-tbl { font-size: 13px; }
+
+/* ---- มือถือ → ≥13px ---- */
+@media (max-width: 640px) {
+  .bp-page .stat-k,
+  .bp-page .rank-score-l,
+  .bp-page .fin-tbl thead th,
+  .bp-page .rb-note,
+  .bp-page .ladder-k,
+  .bp-page .ladder-sub,
+  .bp-page .stat-chg,
+  .bp-page .badge,
+  .bp-page .rank-tbl-no,
+  .bp-page .rank-tbl .stat-n,
+  .bp-page .ladder-price::after,
+  .bp-page .rank-sector,
+  .bp-page .stat-n,
+  .bp-page .rank-tbl { font-size: 13px; }
+  .bp-status { margin-top: -8px; }
+}

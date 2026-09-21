@@ -162,7 +162,7 @@ export const WEIGHTS: { key: keyof ScoreParts; weight: number; label: string; ho
     key: "quality",
     weight: 0.18,
     label: "คุณภาพกิจการ",
-    how: "คะแนนพื้นฐาน (น้ำหนัก 60%) + momentum (40%) จากทีม analyze",
+    how: "คะแนนพื้นฐาน (น้ำหนัก 60%) + momentum (40%) จากรายงาน",
   },
   {
     key: "trend",
@@ -180,13 +180,13 @@ export const WEIGHTS: { key: keyof ScoreParts; weight: number; label: string; ho
     key: "entry",
     weight: 0.07,
     label: "ถึงไม้ไหนของแผน",
-    how: "เทียบราคากับบันไดไม้ทั้งแผนจาก theorie team (ไม่ใช่แค่ไม้แรก) — คะแนน = สัดส่วนเงินที่ theorist วางแผนจะลงไปแล้ว ณ ราคานี้ (ไม้แรกที่ allocation เล็ก = คะแนนต่ำ แม้ราคาจะ 'อยู่ในโซน' ก็ตาม) เหนือไม้ 1 ลดหลั่นจนศูนย์ที่ +8%",
+    how: "เทียบราคากับทุกไม้ในแผนสะสมของรายงาน (ไม่ใช่แค่ไม้แรก) — คะแนน = สัดส่วนเงินที่แผนตั้งใจลงไปแล้ว ณ ราคานี้ (ไม้แรกที่แบ่งเงินไว้น้อย = คะแนนต่ำ แม้ราคาจะ 'อยู่ในโซน' ก็ตาม) เหนือไม้ 1 ลดหลั่นจนศูนย์ที่ +8%",
   },
   {
     key: "risk",
     weight: 0.07,
     label: "ระดับความเสี่ยง",
-    how: "risk_level จากทีม analyze — low 1.00 / medium 0.70 / high 0.35",
+    how: "ระดับความเสี่ยงจากรายงาน — low 1.00 / medium 0.70 / high 0.35",
   },
   {
     key: "verdict",

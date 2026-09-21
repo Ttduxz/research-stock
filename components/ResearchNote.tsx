@@ -79,29 +79,36 @@ export function noteSections(d: RunDetails): { id: string; label: string }[] {
   return s;
 }
 
+/** แถบตัวเลขสำคัญของรายงาน (ราคาตอนทำรายงาน, มูลค่าตลาด ฯลฯ) — หน้าหุ้นวางไว้ในหัวข้อสรุป แยกจากเนื้อหาส่วนอื่น */
+export function NoteRail({ details }: { details: RunDetails }) {
+  const d = details;
+  if (!d.stats || d.stats.length === 0) return null;
+  return (
+    <div className="rail">
+      {d.stats.map((s, i) => (
+        <div key={i} className="stat">
+          <span className="stat-k">
+            {/* กัน "ราคาล่าสุด" ชนกับราคาล่าสุดจริงบนหัวหน้า — ตัวเลขนี้คือราคา ณ วันที่ทำรายงาน */}
+            {s.label.includes("ราคาล่าสุด") ? s.label.replace("ราคาล่าสุด", "ราคาตอนทำรายงาน") : s.label}
+          </span>
+          <span className="stat-v">{s.value}</span>
+          {s.note && (
+            <span className={`stat-n ${s.tone === "up" ? "up" : s.tone === "down" ? "dn" : ""}`}>
+              {s.note}
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** เรนเดอร์ equity research note จากข้อมูลเชิงโครงสร้างของ research team */
-export default function ResearchNote({ details }: { details: RunDetails }) {
+export default function ResearchNote({ details, showRail = true }: { details: RunDetails; showRail?: boolean }) {
   const d = details;
   return (
     <>
-      {d.stats && d.stats.length > 0 && (
-        <div className="rail">
-          {d.stats.map((s, i) => (
-            <div key={i} className="stat">
-              <span className="stat-k">
-                {/* กัน "ราคาล่าสุด" ชนกับราคาล่าสุดจริงบนหัวหน้า — ตัวเลขนี้คือราคา ณ วันที่ทำรายงาน */}
-                {s.label.includes("ราคาล่าสุด") ? s.label.replace("ราคาล่าสุด", "ราคาตอนทำรายงาน") : s.label}
-              </span>
-              <span className="stat-v">{s.value}</span>
-              {s.note && (
-                <span className={`stat-n ${s.tone === "up" ? "up" : s.tone === "down" ? "dn" : ""}`}>
-                  {s.note}
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      {showRail && <NoteRail details={d} />}
 
       {(d.business_md || d.segments) && (
         <>

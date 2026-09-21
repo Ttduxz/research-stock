@@ -14,13 +14,14 @@ import {
 } from "@/lib/ranking";
 import VerdictBadge from "@/components/VerdictBadge";
 import ScenarioLadder from "@/components/ScenarioLadder";
+import "./best-price.css";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "ราคาน่าสนใจที่สุดตอนนี้ | Tee Stock Research",
   description:
-    "จัดอันดับหุ้นที่ราคาปัจจุบันน่าสนใจที่สุด จากรายงาน research → analyze → theorize ในระบบ",
+    "จัดอันดับหุ้นในระบบที่ราคาตอนนี้ยังห่างจากเป้าในรายงานมากที่สุดเมื่อชั่งกับความเสี่ยง — เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน",
 };
 
 const RISK_LABEL: Record<string, string> = {
@@ -37,7 +38,7 @@ const RISK_CLASS: Record<string, string> = {
 };
 
 /** บรรทัดขยาย stat-n ของการ์ด — ยาวกว่า entryLabel() ของตาราง เพราะการ์ดมีที่พออธิบาย
- *  ว่าราคานี้ theorist ยอมลงเงินไปแล้วกี่ % ของแผน (ไม่ใช่แค่ "อยู่ในโซนไหม") */
+ *  ว่าราคานี้แผนในรายงานลงเงินไปแล้วกี่ % (ไม่ใช่แค่ "อยู่ในโซนไหม") */
 function entryDetail(entry: EntryZone | null): string {
   if (!entry) return "ไม่มี entry plan";
   const pct = `${Math.round(entry.cumShare * 100)}%`;
@@ -46,7 +47,7 @@ function entryDetail(entry: EntryZone | null): string {
     case "above":
       return `ยังเหนือไม้ ${entry.tranche}${note}`;
     case "in":
-      return `ถึงไม้ ${entry.tranche}/${entry.trancheCount} · theorist ลง ${pct} ของแผน${note}`;
+      return `ถึงไม้ ${entry.tranche}/${entry.trancheCount} · แผนลงเงินไปแล้ว ${pct}${note}`;
     case "between":
       return `ผ่านไม้ ${entry.tranche} แล้ว · ลงไป ${pct} รอไม้ ${entry.tranche + 1} (${entry.nextRange})${note}`;
     case "below":
@@ -145,7 +146,7 @@ function RangeBar({ r }: { r: PriceRank }) {
         showTrack={false}
       />
       <div className="rb-note">
-        {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วัน run"} {num(r.price)} · เป้าเฉลี่ยถ่วงน้ำหนักจาก {r.theoryCount} ทฤษฎี
+        {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วันทำรายงาน"} {num(r.price)} · เป้าเฉลี่ยถ่วงน้ำหนักจาก {r.theoryCount} ทฤษฎี
       </div>
     </div>
   );
@@ -181,7 +182,7 @@ function RankCard({ r, rank }: { r: PriceRank; rank: number }) {
       <div className="rail rank-rail">
         <div className="stat">
           <span className="stat-k">
-            {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วัน run"}
+            {r.priceSource === "live" ? "ราคาตลาด" : "ราคา ณ วันทำรายงาน"}
           </span>
           <span className="stat-v">
             {money(r.price, r.currency)}
@@ -194,13 +195,13 @@ function RankCard({ r, rank }: { r: PriceRank; rank: number }) {
           <span className="stat-n">
             {r.priceSource === "live" ? (
               <>
-                {asOfText(r.priceAsOf) ?? "ราคาสด"} · จากวัน run{" "}
+                {asOfText(r.priceAsOf) ?? "ราคาสด"} · จากวันทำรายงาน{" "}
                 <span className={toneClass(r.moveSinceRunPct ?? 0)}>
                   {pct(r.moveSinceRunPct ?? 0, 1)}
                 </span>
               </>
             ) : (
-              <>ดึงราคาสดไม่ได้ · ใช้ราคา {r.runDate}</>
+              <>ดึงราคาสดไม่ได้ · ใช้ราคาวันที่ {r.runDate}</>
             )}
           </span>
         </div>
@@ -234,7 +235,7 @@ function RankCard({ r, rank }: { r: PriceRank; rank: number }) {
           <span className="stat-k">จังหวะเก็บของ · กรอบ 6 เดือน</span>
           <span className={`stat-v ${techTone(r.tech)}`}>{techLabel(r.tech)}</span>
           <span className="stat-n">
-            {techDetail(r.tech) || (r.tech.trend == null ? "EMA200 ยังคำนวณไม่ได้ (ประวัติ < 200 วัน)" : "")}
+            {techDetail(r.tech) || (r.tech.trend == null ? "ประวัติราคาไม่ถึง 200 วัน ยังดูเทรนด์ไม่ได้" : "")}
           </span>
         </div>
       </div>
@@ -267,41 +268,28 @@ export default async function BestPricePage() {
     .pop();
 
   return (
-    <>
+    <div className="bp-page">
       <h1>5 หุ้นที่ราคาน่าสนใจที่สุดตอนนี้</h1>
+      {/* บอกแค่ว่าอันดับนี้คืออะไร วิธีคิดละเอียดอยู่หัวข้อ "คะแนนคิดจากอะไร" ท้ายหน้า */}
       <p className="subtitle">
-        เทียบ<b>ราคาตลาดล่าสุด</b>กับเป้าหมายดีสุด/กรณีฐาน/แย่สุดที่ตั้งไว้ในรายงาน
-        ผสมคะแนนพื้นฐาน ความเสี่ยง และบันไดไม้จาก entry plan — อันดับคำนวณใหม่ทุกครั้งที่เปิดหน้า
+        หุ้นในระบบที่ราคาตอนนี้ยังห่างจากเป้าในรายงานมากที่สุด เมื่อชั่งกับความเสี่ยงแล้ว —
+        เพื่อการศึกษา ไม่ใช่คำแนะนำให้ซื้อหรือขาย
       </p>
 
       {ranked.length === 0 ? (
-        <div className="empty-state">
-          ยังจัดอันดับไม่ได้ — ต้องมีหุ้นที่ run เสร็จแล้วอย่างน้อย 1 ตัว (มีทั้งราคาและ scenario
-          เป้าหมาย) สั่งด้วย <code>/research-stock &lt;TICKER&gt;</code>
-        </div>
+        <div className="empty-state">ยังจัดอันดับไม่ได้ — ยังไม่มีหุ้นที่วิเคราะห์เสร็จพร้อมเป้าราคา</div>
       ) : (
         <>
-          <div className="note">
-            <b>ราคาสด {liveCount}/{ranked.length} ตัว</b>
-            {latestQuoteAt && <> · ล่าสุด {asOfText(latestQuoteAt)}</>} — ดึงจาก Yahoo Finance
-            (cache ฝั่ง server 2 นาที) ตัวที่ดึงไม่ได้จะ fallback ไปใช้{" "}
-            <code>price_at_run</code> และเขียนกำกับไว้ในการ์ด
-            <br />
-            <b>สดแค่ราคา</b> — เป้า bull/base/bear, คะแนนพื้นฐาน/momentum, risk_level และ verdict
-            ยังเป็นค่า ณ วันที่รัน pipeline เปลี่ยนได้ต่อเมื่อรัน <code>/research-stock</code> ใหม่
-            <br />
-            <b>จังหวะเก็บของ</b> คำนวณจาก EMA 50/100/200 และกรอบสูง-ต่ำ 6 เดือน จากราคาปิดรายวันของ
-            Yahoo ตัวที่ประวัติไม่พอได้คะแนนกลางๆ — <b>บันไดไม้</b> ตอบว่า &ldquo;ราคาไหนคุ้มตามแผนของหุ้นตัวนี้&rdquo;
-            (คิดตามสัดส่วนเงินที่ theorist วางแผนลงจริง ไม้แรกที่แบ่งเงินไว้น้อยจึงไม่นับว่าราคาคุ้มเต็มที่)
-            ส่วน <b>จังหวะเก็บของ</b> ตอบว่า &ldquo;ตอนนี้ราคาอยู่ส่วนไหนของการแกว่ง 6 เดือน&rdquo; ตรงกันสองอย่าง
-            (ถึงไม้ที่ลงเงินเยอะ + ล่างกรอบ) = จังหวะชัด ขัดกันให้ยึดแผนไม้เป็นหลัก
-          </div>
+          <p className="bp-status">
+            ราคาสด {liveCount}/{ranked.length} ตัว{latestQuoteAt && <> · ล่าสุด {asOfText(latestQuoteAt)}</>} ·{" "}
+            <a href="#bp-method">คะแนนคิดจากอะไร</a>
+          </p>
 
           {staleCount > 0 && (
             <div className="note warn">
-              <b>{staleCount} ตัวราคาขยับจากวัน run เกิน {(STALE_MOVE_THRESHOLD * 100).toFixed(0)}%</b>{" "}
+              <b>{staleCount} ตัวราคาขยับจากวันทำรายงานเกิน {(STALE_MOVE_THRESHOLD * 100).toFixed(0)}%</b>{" "}
               — ติดป้าย &ldquo;บทวิเคราะห์เริ่มเก่า&rdquo; ไว้ ส่วนต่างถึงเป้าที่ดูดีของตัวพวกนี้
-              อาจมาจากเป้าที่ยังไม่ถูกปรับ ไม่ใช่เพราะราคาถูกจริง ควรรัน research ใหม่ก่อน
+              อาจมาจากเป้าที่ยังไม่ถูกปรับ ไม่ใช่เพราะราคาถูกจริง
             </div>
           )}
 
@@ -350,7 +338,7 @@ export default async function BestPricePage() {
                           <span className="rank-tbl-no">{i + 6}</span>
                           <Link href={`/stock/${r.ticker}`}>{r.ticker}</Link>
                           {r.stale && (
-                            <span className="dn" title="ราคาขยับจากวัน run มาก — บทวิเคราะห์เริ่มเก่า">
+                            <span className="dn" title="ราคาขยับจากวันทำรายงานมาก — บทวิเคราะห์เริ่มเก่า">
                               {" "}
                               ⚠
                             </span>
@@ -362,9 +350,9 @@ export default async function BestPricePage() {
                           <br />
                           <span
                             className={`stat-n ${r.moveSinceRunPct == null ? "" : toneClass(r.moveSinceRunPct)}`}
-                            title="เทียบราคา ณ วัน run"
+                            title="เทียบราคา ณ วันทำรายงาน"
                           >
-                            {r.moveSinceRunPct == null ? "(วัน run)" : pct(r.moveSinceRunPct)}
+                            {r.moveSinceRunPct == null ? "(วันรายงาน)" : pct(r.moveSinceRunPct)}
                           </span>
                         </td>
                         <td className={toneClass(r.upsidePct)}>{pct(r.upsidePct, 0)}</td>
@@ -381,30 +369,56 @@ export default async function BestPricePage() {
             </>
           )}
 
-          <h2 className="sector-heading">คะแนนคิดจากอะไร</h2>
+          <h2 className="sector-heading" id="bp-method">
+            คะแนนคิดจากอะไร
+          </h2>
           <div className="panel">
             <div className="kv">
               {WEIGHTS.map((w) => (
                 <div key={w.key}>
                   <span className="k">
-                    <b style={{ color: "var(--text)" }}>{w.label}</b>
-                    <br />
-                    <span style={{ fontSize: 12.5 }}>{w.how}</span>
+                    <b className="bp-w-label">{w.label}</b>
+                    <span className="bp-w-how">{w.how}</span>
                   </span>
                   <span className="v">{(w.weight * 100).toFixed(0)}%</span>
                 </div>
               ))}
             </div>
             <p className="rank-theory" style={{ marginBottom: 0 }}>
-              เป้าหมายและคะแนนทั้งหมดมาจากรายงานที่ทีม analyze/theorie เขียนไว้ใน DB
-              หน้านี้เอามาคิดกับราคาตลาดล่าสุดเท่านั้น ไม่ได้ประเมินมูลค่าใหม่ —
-              และ &ldquo;ส่วนต่างถึงเป้า&rdquo; ถูก cap ที่ +20% ในการให้คะแนน
-              หุ้นที่ราคาร่วงแรงจึงดันคะแนนตัวเองขึ้นไปไม่สุดทาง &ldquo;ราคาดี&rdquo;
-              ที่นี่หมายถึงส่วนต่างถึงเป้ากับความคุ้มของ reward/risk ไม่ได้แปลว่าควรซื้อ
+              &ldquo;ราคาดี&rdquo; ที่นี่หมายถึงราคายังห่างจากเป้าและคุ้มเมื่อเทียบกับความเสี่ยง
+              ไม่ได้แปลว่าควรซื้อ
             </p>
           </div>
+
+          <details className="bp-more">
+            <summary>อ่านวิธีคิดแบบละเอียด</summary>
+            <ul>
+              <li>
+                <b>ราคา</b> — ราคาตลาดจาก Yahoo Finance (ช้ากว่าตลาดได้ราว 2 นาที) ตัวที่ดึงไม่ได้ใช้ราคาวันที่ทำรายงานแทน
+                และเขียนกำกับไว้ในการ์ด
+              </li>
+              <li>
+                <b>สดแค่ราคา</b> — เป้าราคา (ดีสุด/กรณีฐาน/แย่สุด), คะแนนพื้นฐาน, ระดับความเสี่ยง และมุมมอง
+                เป็นค่า ณ วันที่ทำรายงาน จะเปลี่ยนเมื่อหุ้นตัวนั้นถูกวิเคราะห์ใหม่ หน้านี้ไม่ได้ประเมินมูลค่าใหม่
+              </li>
+              <li>
+                <b>ส่วนต่างถึงเป้า</b> — ให้คะแนนเต็มที่ +20% หุ้นที่ราคาร่วงแรงจึงดันคะแนนตัวเองขึ้นไปไม่สุดทาง
+              </li>
+              <li>
+                <b>โซนเข้า (บันไดไม้)</b> — ตอบว่า &ldquo;ราคาไหนคุ้มตามแผนแบ่งซื้อในรายงาน&rdquo; คิดตามสัดส่วนเงินที่แผนวางไว้
+                ไม้แรกที่แบ่งเงินไว้น้อยจึงยังไม่นับว่าคุ้มเต็มที่
+              </li>
+              <li>
+                <b>จังหวะเก็บของ</b> — ตอบว่า &ldquo;ตอนนี้ราคาอยู่ส่วนไหนของการแกว่ง 6 เดือน&rdquo; และเทรนด์ขึ้นหรือลง
+                (ดูจากเส้นค่าเฉลี่ยราคา EMA 50/100/200 วัน) ตัวที่ประวัติราคาไม่พอได้คะแนนกลางๆ
+              </li>
+              <li>
+                ถ้าโซนเข้ากับจังหวะเก็บของตรงกัน (ถึงไม้ที่ลงเงินเยอะ + อยู่ล่างกรอบ) = จังหวะชัด ถ้าขัดกันให้ยึดแผนไม้เป็นหลัก
+              </li>
+            </ul>
+          </details>
         </>
       )}
-    </>
+    </div>
   );
 }
