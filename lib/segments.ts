@@ -1,3 +1,5 @@
+import { OTHER_GROUP, SECTOR_GROUPS, sectorGroup, type SectorGroup } from "@/lib/sectors";
+
 /**
  * จัดกลุ่มอุตสาหกรรม (segment) สำหรับใช้กรองหน้า /insights
  *
@@ -5,36 +7,21 @@
  * (`discovered_from`) จึงอนุมาน segment จาก `sector` ของหุ้นต้นทางแทน ไม่ต้องแก้ schema
  * และ hint เก่าทุกอันได้ segment ทันทีโดยไม่ต้อง re-ingest
  *
- * field `sector` ในตาราง stocks เป็นข้อความอิสระ (เช่น "Utilities / Independent Power Producer (Nuclear)")
- * ยาวเกินจะเอามาทำปุ่มกรองตรงๆ จึงยุบเป็นกลุ่มใหญ่ไม่กี่กลุ่มด้วย regex
- *
- * ลำดับสำคัญ — ใช้กลุ่มแรกที่ match: sector หลายอันพูดถึงหลายเรื่องในบรรทัดเดียว
- * เช่น TSLA = "Consumer Discretionary / Automobiles (EV, Energy, AI & Robotics)" ต้องได้ "อุปโภคบริโภค"
- * ไม่ใช่ "พลังงาน" ส่วน GEV = "Electrical Equipment / Energy Infrastructure (Industrials)"
- * ต้องได้ "พลังงาน" ไม่ใช่ "อุตสาหกรรม"
+ * field `sector` ในตาราง stocks เป็นข้อความอิสระ — ยุบเป็นกลุ่มด้วยกฎใน lib/sectors.ts (ลำดับกฎ + เหตุผลอยู่ที่นั่น)
  */
-export const SEGMENTS: { key: string; label: string; test: RegExp }[] = [
-  { key: "quantum", label: "ควอนตัม", test: /quantum/i },
-  { key: "health", label: "สุขภาพ", test: /health|pharma|biotech|biopharma/i },
-  { key: "finance", label: "การเงิน", test: /financial|payment|bank|insurance/i },
-  { key: "consumer", label: "อุปโภคบริโภค & ค้าปลีก", test: /consumer|retail|staples|discretionary/i },
-  { key: "comm", label: "สื่อสาร & บันเทิง", test: /communication|entertainment|streaming|media/i },
-  { key: "semi", label: "เซมิคอนดักเตอร์ & ฮาร์ดแวร์", test: /semiconduct|foundry|optical|hardware/i },
-  { key: "energy", label: "พลังงาน & สาธารณูปโภค", test: /utilit|energy|power|electrical|grid/i },
-  { key: "industrial", label: "อุตสาหกรรม & การบิน", test: /aerospace|defense|industrial|automation|materials|metal/i },
-  { key: "tech", label: "เทคโนโลยี & ซอฟต์แวร์", test: /technology|software|data|cyber/i },
-];
+// ใช้ชุดกลุ่มเดียวกับหน้าแรก (lib/sectors.ts) ทั้งเว็บ — เดิมไฟล์นี้มีกฎของตัวเองที่หยาบกว่า (เทคทั้งหมดเป็นกลุ่มเดียว)
+// ทำให้หุ้นตัวเดียวกันอยู่คนละชื่อกลุ่มระหว่างหน้าแรก กับ /insights และ /track-record (รวมเป็นชุดเดียว 2026-09-21)
+export const SEGMENTS: SectorGroup[] = SECTOR_GROUPS;
 
-export const OTHER_SEGMENT = { key: "other", label: "อื่นๆ" };
+export const OTHER_SEGMENT = OTHER_GROUP;
 
 export function segmentLabel(key: string): string {
-  return SEGMENTS.find((s) => s.key === key)?.label ?? OTHER_SEGMENT.label;
+  return SECTOR_GROUPS.find((s) => s.key === key)?.label ?? OTHER_GROUP.label;
 }
 
 /** sector หนึ่งบรรทัด → key ของกลุ่มเดียว */
 export function segmentOf(sector: string | null | undefined): string {
-  if (!sector) return OTHER_SEGMENT.key;
-  return SEGMENTS.find((s) => s.test.test(sector))?.key ?? OTHER_SEGMENT.key;
+  return sectorGroup(sector).key;
 }
 
 /**
