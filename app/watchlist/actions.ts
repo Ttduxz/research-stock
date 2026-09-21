@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/auth";
 import { getStock } from "@/lib/db";
 import { setWatch } from "@/lib/watchlist";
+import { markWatchlistSeen } from "@/lib/watch-brief";
 
 /**
  * กด ☆ ติดตาม / เลิกติดตาม — อีเมลเอาจาก session ฝั่ง server เท่านั้น ไม่รับจาก client
@@ -20,4 +21,12 @@ export async function toggleWatch(ticker: string, on: boolean): Promise<void> {
   await setWatch(email, t, Boolean(on));
   revalidatePath("/watchlist");
   revalidatePath(`/stock/${t}`);
+}
+
+/** เปิดหน้า /watchlist แล้ว — ขยับจุดตั้งต้นของ "มีอะไรใหม่" (อีเมลจาก session เท่านั้น) */
+export async function markSeen(): Promise<void> {
+  const session = await auth();
+  const email = session?.user?.email;
+  if (!email) return;
+  await markWatchlistSeen(email);
 }

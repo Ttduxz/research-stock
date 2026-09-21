@@ -130,6 +130,16 @@ export const SCHEMA = [
     PRIMARY KEY (email, ticker)
   )`,
 
+  // "มีอะไรใหม่ตั้งแต่ครั้งก่อน" บนหน้า /watchlist — จำว่าแต่ละคนเปิดหน้านี้ล่าสุดเมื่อไร (ดู lib/watch-brief.ts)
+  // baseline_at = จุดตั้งต้นของการเข้าชมรอบนี้ (ขยับเมื่อห่างจาก last_seen_at เกิน 30 นาที — รีเฟรชซ้ำแล้วของใหม่ไม่หายทันที)
+  // ค่า '' = ยังไม่เคยมีการเข้าชมรอบก่อน (หน้าแสดงย้อนหลัง 7 วัน)
+  // ผูกอีเมล: ห้ามใส่ใน export-db.mjs และห้ามห่อด้วย lib/cached.ts
+  `CREATE TABLE IF NOT EXISTS watchlist_seen (
+    email        TEXT PRIMARY KEY,
+    baseline_at  TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL
+  )`,
+
   // คำขอให้วิเคราะห์หุ้นที่ยังไม่มีในระบบ — ผูกอีเมลเหมือน watchlist จึงไม่อยู่ใน export-db.mjs และไม่ผ่าน lib/cached.ts
   // "วิเคราะห์แล้ว" ไม่ต้องเก็บสถานะ: ดูจากว่า ticker มีในตาราง stocks แล้วหรือยัง
   `CREATE TABLE IF NOT EXISTS stock_requests (

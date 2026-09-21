@@ -4,16 +4,44 @@
     {
       "name": "dev",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "dev-localdb",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--", "-p", "3100"],
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3100"
+      ],
       "port": 3100,
-      "env": { "TURSO_DATABASE_URL": "file:./data/stock.db", "TURSO_AUTH_TOKEN": "" }
+      "env": {
+        "TURSO_DATABASE_URL": "file:./data/stock.db",
+        "TURSO_AUTH_TOKEN": ""
+      }
+    },
+    {
+      "name": "dev-copydb",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "-p",
+        "3200"
+      ],
+      "port": 3200,
+      "env": {
+        "TURSO_DATABASE_URL": "file:./data/dev-copy.db",
+        "TURSO_AUTH_TOKEN": ""
+      }
     }
   ]
 }

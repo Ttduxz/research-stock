@@ -1,210 +1,161 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { auth } from "@/auth";
-import { listStocksWithLatest, listLatestReviews, listHints, listLatestRunInsightSlugs } from "@/lib/cached";
+import {
+  listStocksWithLatest,
+  listLatestReviews,
+  listHints,
+  listLatestRunInsightSlugs,
+  listLatestSnapshots,
+} from "@/lib/cached";
 import { listWatchTickers, watchlistAvailable } from "@/lib/watchlist";
-import { PLAN_STATUS_LABEL } from "@/lib/plan-status";
+import { getBriefBaseline, getWatchBrief } from "@/lib/watch-brief";
 import { isActiveHint } from "@/lib/hint-status";
-import type { HintSummary, Review, StockOverview } from "@/lib/db";
-import VerdictBadge from "@/components/VerdictBadge";
-import HintBadge from "@/components/HintBadge";
-import WatchButton from "@/components/WatchButton";
-import Chevron from "@/components/Chevron";
+import type { Review, StockOverview } from "@/lib/db";
+import WatchlistSeen from "@/components/WatchlistSeen";
+import { parseTranches, zoneInfo } from "@/components/PlanZone";
+import WatchFilter from "@/components/WatchFilter";
+import { Card, PLAN_ORDER, PLAN_SHORT, changeTags, type WatchRow } from "./views";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "หุ้นที่ฉันติดตาม | Tee Stock Research",
-  description: "หุ้นที่คุณกดติดตามไว้ พร้อมผลทบทวนล่าสุดของแต่ละตัว",
+  description: "หุ้นที่คุณกดติดตามไว้ อะไรใหม่ตั้งแต่ครั้งก่อน และราคาเทียบแผนของแต่ละตัว",
 };
 
 /**
- * ลำดับกลุ่ม: ตัวที่รายงานบอกว่ามีความเคลื่อนไหวขึ้นก่อน — กลุ่มที่ "ไม่มีอะไรเปลี่ยน" (มักเป็นส่วนใหญ่) พับไว้
- * เดิมเป็นการ์ดเต็มทุกตัว ติดตามแค่ 10-20 ตัวก็ต้องเลื่อนยาว (ข้อความจากรอบทบทวนยาวได้ถึง 3 ประโยคต่อตัว)
- * ยังใช้คำว่า "แผนเดิมบอกว่า…" — จัดกลุ่มหุ้นที่คนนี้เลือกติดตามเอง ตามที่รายงานเขียนไว้ ไม่ใช่คำสั่งซื้อขาย
+ * หน้านี้ต้องสแกนได้ในไม่กี่วินาที — ผู้ใช้บอกว่าแบบแถว+ประโยค "ตัวหนังสือ overload ไม่น่าอ่าน"
+ * ข้อความยาว (action_md ของรอบทบทวน, insight) อยู่ตอนกดเท่านั้น · หุ้นแต่ละตัวอยู่ที่เดียวบนหน้า
+ * การ์ดอยู่ app/watchlist/views.tsx · ชิปสถานะด้านบนกดกรองได้ (components/WatchFilter.tsx)
  */
-// ทุกกลุ่มกางไว้เป็นค่าเริ่มต้น — เคยพับกลุ่ม "ยังไม่ต้องทำอะไร" ไว้ แต่หุ้นที่ผู้ใช้เลือกติดตามเองหายไปจากหน้าจนดูเหมือนพัง
-// ความยาวหน้าคุมด้วยแถวย่อบรรทัดเดียวแล้ว ส่วนการพับกลุ่มเป็นทางเลือกของผู้ใช้เอง
-const GROUPS: { key: string; open: boolean }[] = [
-  { key: "plan-broken", open: true },
-  { key: "plan-live", open: true },
-  { key: "watch", open: true },
-  { key: "no-action", open: true },
-  { key: "none", open: true },
-];
 
-const groupLabel = (key: string) => (key === "none" ? "ยังไม่มีรอบทบทวน" : PLAN_STATUS_LABEL[key] ?? key);
-
-/** แถวย่อหนึ่งบรรทัด กดแล้วกางข้อความจากรอบทบทวน — ปุ่ม ★ อยู่ในแถวแต่กดแล้วไม่กางแถว (WatchButton กัน default) */
-function StockRow({
-  stock,
-  review,
-  insights,
-}: {
-  stock: StockOverview;
-  review: Review | null;
-  insights: HintSummary[];
-}) {
-  const price = review?.price_at_review ?? stock.latest_price;
-  // รายงานถูกทำใหม่หลังรอบทบทวน (เช่น ปรับตาม insight ใหม่) — ข้อความ action_md ด้านล่างเป็นของก่อนหน้านั้น
-  const runAfterReview =
-    !!review && !!stock.latest_run_date && stock.latest_run_date > review.review_date;
-  return (
-    <details className={`wl-row ps-${review?.plan_status ?? "none"}`}>
-      <summary className="wl-sum">
-        {/* ticker + ชื่อซ้อนกันเป็นก้อนเดียว — เดิมชื่อเป็นช่องแยกที่หดได้ตัวเดียวในแถว จอแคบลงนิดเดียวก็ถูกบีบจนหาย */}
-        <span className="wl-id">
-          <span className="wl-ticker">{stock.ticker}</span>
-          <span className="wl-name">{stock.name}</span>
-          {/* insight ที่รายงานล่าสุด factor เข้าไปแล้ว — โชว์โดยไม่ต้องกางแถว (ในแถบนี้เป็น span ไม่ใช่ลิงก์ กดแล้วกางแถวตามปกติ) */}
-          {insights.length > 0 && (
-            <span className="wl-insights">
-              {insights.slice(0, 2).map((h) => (
-                <span key={h.slug} className={`wl-insight dir-${h.direction ?? "mixed"}`} title={h.title}>
-                  {h.title}
-                </span>
-              ))}
-              {insights.length > 2 && <span className="wl-insight-more">+{insights.length - 2}</span>}
-              {/* มือถือ: ชิปเต็มแย่งพื้นที่จนอ่านแถวยาก — เหลือจุดสีตามทิศทาง + จำนวน (รายชื่อเต็มอยู่ตอนกางแถว) */}
-              <span className="wl-insight-mini" aria-label={`insight ${insights.length} เรื่อง`}>
-                {insights.slice(0, 3).map((h) => (
-                  <i key={h.slug} className={`wl-dot dir-${h.direction ?? "mixed"}`} />
-                ))}
-                insight {insights.length}
-              </span>
-            </span>
-          )}
-        </span>
-        {stock.latest_verdict && <VerdictBadge verdict={stock.latest_verdict} />}
-        {price != null && (
-          <span className="wl-price">
-            {price.toLocaleString()} {stock.currency}
-            {review?.price_move_pct != null && (
-              <span className={review.price_move_pct >= 0 ? "up" : "dn"}>
-                {" "}
-                {review.price_move_pct > 0 ? "+" : ""}
-                {review.price_move_pct.toFixed(1)}%
-              </span>
-            )}
-          </span>
-        )}
-        <WatchButton ticker={stock.ticker} watching compact />
-        <span className="wl-chevron" aria-hidden="true">
-          <Chevron />
-        </span>
-      </summary>
-
-      <div className="wl-body">
-        {insights.length > 0 && (
-          <ul className="wl-insight-list">
-            {insights.map((h) => (
-              <li key={h.slug}>
-                <HintBadge direction={h.direction} magnitude={h.magnitude} />
-                <Link href={`/insights/${h.slug}`}>{h.title}</Link>
-              </li>
-            ))}
-          </ul>
-        )}
-        {review ? (
-          <>
-            {runAfterReview && (
-              <p className="wl-updated">
-                รายงานทำใหม่เมื่อ {stock.latest_run_date} หลังรอบทบทวน — verdict และแผนเข้าซื้อในรายงานเต็มเป็นฉบับใหม่แล้ว
-                ข้อความด้านล่างมาจากรอบทบทวนก่อนหน้า
-              </p>
-            )}
-            {review.action_md && <p className="wl-action">{review.action_md}</p>}
-            <div className="wl-meta">
-              <span>ทบทวนล่าสุด {review.review_date}</span>
-              {stock.latest_run_date && <span>รายงานล่าสุด {stock.latest_run_date}</span>}
-              <Link href={`/stock/${stock.ticker}`}>อ่านรายงานเต็ม →</Link>
-            </div>
-          </>
-        ) : (
-          <div className="wl-meta">
-            <span>ยังไม่มีรอบทบทวน{stock.latest_run_date ? ` · รายงานล่าสุด ${stock.latest_run_date}` : ""}</span>
-            <Link href={`/stock/${stock.ticker}`}>อ่านรายงานเต็ม →</Link>
-          </div>
-        )}
-      </div>
-    </details>
-  );
-}
+/** เวลาเก็บเป็น UTC ('YYYY-MM-DD HH:MM:SS') — แสดงเป็นเวลาไทย */
+const fmtSince = (since: string) =>
+  new Date(since.replace(" ", "T") + "Z").toLocaleString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
 /**
- * หุ้นที่คนนี้กด ☆ ไว้ — รายการเป็นของแต่ละคน (อ่านสดจาก lib/watchlist.ts ไม่ผ่าน cache)
- * ส่วนข้อมูลหุ้น/ผลทบทวนเป็นของกลาง ใช้ query ที่ cache ร่วมกับหน้าอื่นได้
+ * รายการติดตามเป็นของแต่ละคน (อ่านสดจาก lib/watchlist.ts + lib/watch-brief.ts ไม่ผ่าน cache)
+ * ส่วนข้อมูลหุ้น/ผลทบทวน/แผนเป็นของกลาง ใช้ query ที่ cache ร่วมกับหน้าอื่นได้
  */
 export default async function WatchlistPage() {
   const session = await auth();
   const email = session?.user?.email ?? null;
 
-  const [tickers, stocks, reviews, hints, insightSlugs] = await Promise.all([
+  const [tickers, stocks, reviews, hints, insightSlugs, snapshots, baseline] = await Promise.all([
     email ? listWatchTickers(email) : Promise.resolve([] as string[]),
     listStocksWithLatest(),
     listLatestReviews(),
     listHints(),
     listLatestRunInsightSlugs(),
+    listLatestSnapshots(),
+    email && watchlistAvailable ? getBriefBaseline(email) : Promise.resolve(null),
   ]);
   const stockBy = new Map(stocks.map((s) => [s.ticker, s]));
   const reviewBy = new Map(reviews.map((r) => [r.ticker, r]));
-  // เฉพาะ insight ที่ยังมีผลอยู่ — เรียงใหม่สุดก่อนตาม listHints() (เรื่องที่ปิดแล้วไม่ควรดูเหมือนยังกระทบหุ้น)
+  const planBy = new Map(snapshots.map((s) => [s.stock.ticker, s.run.entry_plan_json]));
   const activeHints = hints.filter((h) => isActiveHint(h.status));
-  const insightsOf = (ticker: string) => {
-    const slugs = new Set(insightSlugs[ticker] ?? []);
-    return activeHints.filter((h) => slugs.has(h.slug));
-  };
   // หุ้นที่ถูกลบออกจากระบบไปแล้วแต่ยังค้างในรายการติดตาม — ข้ามไป ไม่ทำให้หน้าพัง
   const items = tickers
     .map((t) => ({ stock: stockBy.get(t), review: reviewBy.get(t) ?? null }))
     .filter((x): x is { stock: StockOverview; review: Review | null } => !!x.stock);
 
-  const grouped = GROUPS.map((g) => ({
-    ...g,
-    items: items
-      .filter((x) => (x.review?.plan_status ?? "none") === g.key || (g.key === "none" && !x.review))
-      .sort((a, b) => a.stock.ticker.localeCompare(b.stock.ticker)),
-  })).filter((g) => g.items.length > 0);
-  // plan_status ที่ไม่รู้จัก (ถ้ามีในอนาคต) ไม่ให้หายไปจากหน้า — รวมไว้กลุ่มท้าย
-  const known = new Set(GROUPS.map((g) => g.key));
-  const unknown = items.filter((x) => x.review?.plan_status && !known.has(x.review.plan_status));
-  if (unknown.length > 0) grouped.push({ key: "other", open: true, items: unknown });
+  const brief = baseline ? await getWatchBrief(items.map((x) => x.stock.ticker), baseline, insightSlugs) : null;
+  const changeBy = new Map((brief?.entries ?? []).map((e) => [e.ticker, e]));
+
+  const rows: WatchRow[] = items.map(({ stock, review }) => {
+    const price = review?.price_at_review ?? stock.latest_price;
+    const change = changeBy.get(stock.ticker) ?? null;
+    const slugs = new Set(insightSlugs[stock.ticker] ?? []);
+    const tranches = parseTranches(planBy.get(stock.ticker) ?? null);
+    return {
+      stock,
+      review,
+      plan: review?.plan_status ?? "none",
+      price,
+      move: review?.price_move_pct ?? null,
+      tranches,
+      zone: price != null ? zoneInfo(tranches, price) : null,
+      change,
+      tags: change ? changeTags(change) : [],
+      insights: activeHints.filter((h) => slugs.has(h.slug)),
+    };
+  });
+  const rowBy = new Map(rows.map((r) => [r.stock.ticker, r]));
+  const rank = (p: string) => PLAN_ORDER.indexOf(p) + 1 || 9;
+  // มีเรื่องใหม่: เรียงตามความสำคัญของสิ่งที่เปลี่ยน (lib/watch-brief.ts) · ที่เหลือ: ตามสถานะแผน แล้วตามตัวอักษร
+  const fresh = (brief?.entries ?? []).map((e) => rowBy.get(e.ticker)!).filter(Boolean);
+  const rest = rows
+    .filter((r) => !r.change)
+    .sort((a, b) => rank(a.plan) - rank(b.plan) || a.stock.ticker.localeCompare(b.stock.ticker));
+  const counts = PLAN_ORDER.map((plan) => ({ plan, label: PLAN_SHORT[plan] ?? plan, n: rows.filter((r) => r.plan === plan).length })).filter(
+    (c) => c.n > 0
+  );
+  const sinceText = brief ? (brief.firstVisit ? "ใน 7 วันที่ผ่านมา" : `ตั้งแต่ ${fmtSince(brief.since)}`) : null;
 
   return (
     <>
       <h1>หุ้นที่ฉันติดตาม</h1>
-      <p className="subtitle">
-        หุ้นที่คุณกด ☆ ไว้ {items.length > 0 && <>{items.length} ตัว </>}จัดกลุ่มตามที่รอบทบทวนล่าสุดบอก — กดแถวเพื่อดูรายละเอียด
-        รายการนี้เห็นเฉพาะคุณ · เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน
-      </p>
+      <p className="subtitle">เห็นเฉพาะคุณ · เพื่อการศึกษา ไม่ใช่คำแนะนำการลงทุน</p>
 
       {!watchlistAvailable ? (
         <div className="empty-state">ระบบติดตามหุ้นยังใช้ไม่ได้ในโหมดข้อมูลปัจจุบัน</div>
-      ) : items.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="empty-state">
           ยังไม่ได้ติดตามหุ้นตัวไหน — เปิดหน้าหุ้นที่สนใจแล้วกด <b>☆ ติดตาม</b> ข้างชื่อหุ้น
           <br />
           <Link href="/">ดูหุ้นทั้งหมด →</Link>
         </div>
       ) : (
-        grouped.map((g) => (
-          <details key={g.key} className={`wl-group ps-${g.key}`} open={g.open}>
-            <summary className="wl-group-sum">
-              <span className="wl-group-title">
-                {g.key === "other" ? "สถานะอื่น" : groupLabel(g.key)}
-              </span>
-              <span className="sector-count">({g.items.length})</span>
-              <span className="wl-chevron" aria-hidden="true">
-                <Chevron />
-              </span>
-            </summary>
-            <div className="wl-rows">
-              {g.items.map(({ stock, review }) => (
-                <StockRow key={stock.ticker} stock={stock} review={review} insights={insightsOf(stock.ticker)} />
-              ))}
-            </div>
-          </details>
-        ))
+        <>
+          <WatchlistSeen />
+          <WatchFilter counts={counts}>
+            <section className="wl-sec">
+              <div className="wl-sec-head">
+                <h2 className="wl-sec-title">มีเรื่องใหม่</h2>
+                {sinceText && <span className="wl-sec-note">{sinceText}</span>}
+              </div>
+              {fresh.length > 0 ? (
+                <div className="wl-grid">
+                  {fresh.map((r) => (
+                    <Card key={r.stock.ticker} row={r} />
+                  ))}
+                </div>
+              ) : (
+                <p className="wl-none">ไม่มีอะไรใหม่ — สัปดาห์ส่วนใหญ่เป็นแบบนี้</p>
+              )}
+            </section>
+            {rest.length > 0 && (
+              <section className="wl-sec">
+                <div className="wl-sec-head">
+                  <h2 className="wl-sec-title">ที่เหลือ</h2>
+                  <span className="wl-sec-note">ไม่มีอะไรใหม่ · กดการ์ดเพื่ออ่านรอบทบทวนล่าสุด</span>
+                </div>
+                <div className="wl-grid">
+                  {rest.map((r) => (
+                    <Card key={r.stock.ticker} row={r} />
+                  ))}
+                </div>
+              </section>
+            )}
+          </WatchFilter>
+
+          <p className="wl-foot">
+            &quot;ไม้&quot; = ช่วงราคาในแผนสะสมแบ่งไม้ของรายงาน · สถานะแผนมาจากรอบทบทวนล่าสุด
+            {brief && brief.otherNewInsights > 0 && (
+              <>
+                {" "}
+                · <Link href="/insights">insight ใหม่อีก {brief.otherNewInsights} เรื่อง →</Link>
+              </>
+            )}
+          </p>
+        </>
       )}
     </>
   );
