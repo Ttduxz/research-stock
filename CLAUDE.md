@@ -107,6 +107,15 @@ npm run check:compliance -- <DIR>   # ด่านตรวจภาษา (ห�
 - หุ้นที่ฉันติดตาม (`/watchlist`): ตาราง `watchlist` (email, ticker) ผูกกับอีเมลเหมือนกัน — **ห้ามใส่ใน `export-db.mjs` และห้ามห่อด้วย `lib/cached.ts`** (ต่างกันรายคน + ต้องเห็นผลทันทีหลังกด ☆) โค้ดอยู่ `lib/watchlist.ts` + server action `app/watchlist/actions.ts` ที่เอาอีเมลจาก session เท่านั้น
 - env ที่ต้องมี (local + Vercel): `AUTH_SECRET`, `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`, `ADMIN_EMAILS`
 
+## MCP — ให้ agent ของผู้ใช้มาเกาะเว็บเป็น tools
+
+- endpoint `/api/mcp` (Streamable HTTP, stateless, ไลบรารี `mcp-handler` + `@modelcontextprotocol/server` v2) — tools อยู่ `lib/mcp/tools.ts` อ่านผ่าน `lib/cached.ts` ชุดเดียวกับหน้าเว็บ คืน markdown ย่อยแล้ว + ลิงก์หน้าเว็บ + disclaimer; **ไม่มี tool ไหนผลิตความเห็นใหม่** (อย่าเพิ่ม tool ที่เรียก LLM/รัน pipeline จากคำขอของคนนอก)
+- tools: `search_stocks`, `get_stock_report` (เลือก sections), `rank_by_price`, `list_insights`/`get_insight`, `get_track_record` (scope `research`) + `get_my_watchlist`, `update_watchlist`, `request_stock_analysis` (scope `account` — อีเมลจาก token เท่านั้น ไม่รับจาก argument) · เพิ่ม/แก้ tool ต้องแก้รายการใน `app/connect/page.tsx` ให้ตรง
+- ยืนยันตัว 2 แบบ ตัวตน = อีเมล Google เดิมของเว็บ: (1) OAuth 2.1 ที่เว็บเป็น authorization server เอง (`/.well-known/*`, `/api/oauth/register|token|revoke`, หน้ายินยอม `/oauth/authorize` → form post ไป `/api/oauth/authorize` พร้อม HMAC ด้วย `AUTH_SECRET`) — public client + PKCE S256 บังคับ, access 1 ชม., refresh 30 วันหมุนทุกครั้ง (refresh เก่าถูกใช้ซ้ำ = เพิกถอนทั้ง family) (2) API key ส่วนตัว `tsr_key_…` สร้างที่หน้า `/connect` (สูงสุด 5)
+- ตาราง `mcp_clients` / `mcp_auth_codes` / `mcp_tokens` เก็บแค่ sha256 ของ code/token — **ห้ามใส่ใน `export-db.mjs` และห้ามผ่าน `lib/cached.ts`**; rate limit 120 req/นาที/token นับใน `verifyToken` (UPDATE…RETURNING คำสั่งเดียว); ทุก tool call log ลง `access_logs` event `mcp`
+- `middleware.ts` ไม่ครอบ `/api/mcp`, `/api/oauth/*`, `/.well-known/*` (ใช้ bearer token — redirect ไป /login แล้ว client พัง) แต่ครอบ `/oauth/authorize` (ต้อง login ก่อนยินยอม)
+- ทดสอบ local โดยไม่แตะ Turso: `preview_start dev-localdb` (port 3100 ใช้ `data/stock.db`)
+
 ## Deployment
 
 - Vercel project: `ttduxzs-projects/tee-stock-research` (link ไว้แล้วใน `.vercel/`)

@@ -6,7 +6,7 @@ import { listAccessSummary, listRecentAccess } from "@/lib/access-log";
 
 export const dynamic = "force-dynamic";
 
-const EVENT_LABEL: Record<string, string> = { login: "เข้าสู่ระบบ", logout: "ออกจากระบบ", view: "เปิดหน้า" };
+const EVENT_LABEL: Record<string, string> = { login: "เข้าสู่ระบบ", logout: "ออกจากระบบ", view: "เปิดหน้า", mcp: "AI agent" };
 
 /** DB เก็บเวลาเป็น UTC — แสดงเป็นเวลาไทย */
 function thTime(utc: string): string {

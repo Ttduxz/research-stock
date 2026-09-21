@@ -34,6 +34,8 @@ export default auth((req) => {
 
 export const config = {
   runtime: "nodejs",
-  // ไม่ผ่าน middleware: ไฟล์ static, route ของ Auth.js เอง, health check
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|api/health|.*\\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml)$).*)"],
+  // ไม่ผ่าน middleware: ไฟล์ static, route ของ Auth.js เอง, health check,
+  // MCP + OAuth ของ agent (ยืนยันตัวด้วย bearer token ใน route เอง — ถูก redirect ไป /login แล้ว client จะพัง)
+  // หน้ายินยอม /oauth/authorize ยังผ่าน middleware ตั้งใจ — ต้อง login Google ก่อน
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/auth|api/health|api/mcp|api/oauth|\\.well-known|.*\\.(?:png|jpg|jpeg|svg|ico|webp|txt|xml)$).*)"],
 };

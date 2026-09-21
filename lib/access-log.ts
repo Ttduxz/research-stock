@@ -7,7 +7,8 @@ import { createClient, type Client } from "@libsql/client";
  * ไม่เก็บ IP ของผู้ใช้ (privacy) — เดิมมีคอลัมน์ ip แต่ลบทิ้งแล้วทั้งคอลัมน์และข้อมูลเก่า อย่าเพิ่มกลับ
  */
 
-export type AccessEvent = "login" | "logout" | "view";
+/** mcp = agent ของผู้ใช้เรียก tool ผ่าน /api/mcp (path = "mcp:<tool> <ticker>", user_agent = ชื่อ client) */
+export type AccessEvent = "login" | "logout" | "view" | "mcp";
 
 export interface AccessLog {
   id: number;

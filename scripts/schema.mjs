@@ -140,6 +140,47 @@ export const SCHEMA = [
     PRIMARY KEY (email, ticker)
   )`,
 
+  // ---- MCP (agent ของผู้ใช้มาเกาะเว็บเป็น tools — ดู lib/mcp/) ----
+  // ทั้ง 3 ตารางผูกอีเมล/เป็นความลับ: ห้ามใส่ใน export-db.mjs และห้ามห่อด้วย lib/cached.ts
+  // client ที่ลงทะเบียนตัวเองผ่าน OAuth Dynamic Client Registration (RFC 7591) — public client ไม่มี secret
+  `CREATE TABLE IF NOT EXISTS mcp_clients (
+    client_id      TEXT PRIMARY KEY,
+    client_name    TEXT,
+    redirect_uris  TEXT NOT NULL,          -- JSON array
+    created_at     TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  // authorization code อายุสั้น ใช้ครั้งเดียว — เก็บแค่ hash + PKCE challenge
+  `CREATE TABLE IF NOT EXISTS mcp_auth_codes (
+    code_hash       TEXT PRIMARY KEY,
+    client_id       TEXT NOT NULL,
+    email           TEXT NOT NULL,
+    redirect_uri    TEXT NOT NULL,
+    code_challenge  TEXT NOT NULL,
+    scope           TEXT NOT NULL,
+    resource        TEXT,
+    expires_at      INTEGER NOT NULL,      -- unix seconds
+    created_at      TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  // access / refresh token ของ OAuth + API key ส่วนตัว (kind = key ไม่มีวันหมดอายุจนกว่าจะเพิกถอน)
+  // เก็บแค่ sha256 ของ token — DB หลุดก็เอาไปใช้ไม่ได้; family = token ชุดเดียวกัน (เพิกถอนทีเดียวทั้งชุด)
+  `CREATE TABLE IF NOT EXISTS mcp_tokens (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_hash    TEXT NOT NULL UNIQUE,
+    kind          TEXT NOT NULL,           -- access | refresh | key
+    family        TEXT NOT NULL,
+    email         TEXT NOT NULL,
+    client_id     TEXT NOT NULL,           -- OAuth client_id หรือ 'personal-key'
+    label         TEXT,                    -- ชื่อที่แสดงในหน้า /connect
+    scope         TEXT NOT NULL,
+    expires_at    INTEGER,                 -- unix seconds, null = ไม่หมดอายุ
+    revoked_at    TEXT,
+    last_used_at  TEXT,
+    window_start  INTEGER NOT NULL DEFAULT 0,  -- rate limit แบบหน้าต่าง 1 นาที
+    window_count  INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_mcp_tokens_email ON mcp_tokens(email, kind)`,
+
   `CREATE INDEX IF NOT EXISTS idx_runs_ticker ON research_runs(ticker, run_date)`,
   `CREATE INDEX IF NOT EXISTS idx_access_email ON access_logs(email, created_at)`,
 

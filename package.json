@@ -28,13 +28,16 @@
   },
   "dependencies": {
     "@libsql/client": "^0.14.0",
+    "@modelcontextprotocol/server": "^2.0.0",
     "marked": "^14.1.2",
+    "mcp-handler": "^2.2.0",
     "motion": "^12.43.0",
     "next": "^15.4.5",
     "next-auth": "^5.0.0-beta.32",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
