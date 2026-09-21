@@ -115,6 +115,7 @@ npm run check:compliance -- <DIR>   # ด่านตรวจภาษา (ห�
 - ตาราง `mcp_clients` / `mcp_auth_codes` / `mcp_tokens` เก็บแค่ sha256 ของ code/token — **ห้ามใส่ใน `export-db.mjs` และห้ามผ่าน `lib/cached.ts`**; rate limit 120 req/นาที/token นับใน `verifyToken` (UPDATE…RETURNING คำสั่งเดียว); ทุก tool call log ลง `access_logs` event `mcp`
 - `middleware.ts` ไม่ครอบ `/api/mcp`, `/api/oauth/*`, `/.well-known/*` (ใช้ bearer token — redirect ไป /login แล้ว client พัง) แต่ครอบ `/oauth/authorize` (ต้อง login ก่อนยินยอม)
 - ทดสอบ local โดยไม่แตะ Turso: `preview_start dev-localdb` (port 3100 ใช้ `data/stock.db`)
+- **ตอนพัฒนาเว็บ ใช้ MCP `tee-stock` อ่านข้อมูลแทนการเปิดเว็บ/เขียน SQL ได้** (ตั้งไว้ local scope ใน `~/.claude.json` ของเครื่อง dev แล้ว — ไม่อยู่ใน repo) ข้อควรรู้: อ่าน **production** เสมอ ไม่ใช่ `data/stock.db` ที่แก้อยู่ในเครื่อง และช้ากว่าของจริงได้ถึง 60 วินาที (cache) — งานที่ต้องเห็นผลทันทีหลัง ingest ให้ query DB ตรง
 
 ## Deployment
 
