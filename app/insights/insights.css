@@ -1,0 +1,172 @@
+/* ============================================================
+   หน้า /insights (รายการ) — import จาก app/insights/page.tsx เท่านั้น · คลาส in2- ทั้งหมด ไม่แตะ globals.css
+   การ์ดภาษาภาพเดียวกับ /watchlist (.wc): พื้นการ์ด + ขอบบนสีตามทิศทาง + ท้ายการ์ดคั่นเส้นบาง
+   ตัวอักษรไม่ต่ำกว่า 12px บนจอคอม / 13px ที่ ≤640px · ห้ามล้นแนวนอนที่ 375px
+   ============================================================ */
+
+.in2-head { margin-bottom: 22px; }
+.in2 .in2-head h1 { margin-bottom: 6px; }
+.in2-lead { margin: 0; max-width: 62ch; font-size: 15px; line-height: 1.7; color: var(--text-dim); }
+
+/* ---- ตัวกรอง ---- */
+.in2-controls { display: grid; gap: 10px; margin-bottom: 8px; }
+.in2-filter { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.in2-filter-label { flex: none; width: 52px; font-size: 13px; color: var(--text-faint); }
+.in2-chips { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.in2-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.in2-chip:hover { border-color: var(--border-strong); color: var(--text); }
+.in2-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.in2-chip.on { color: var(--accent); border-color: rgba(95, 157, 240, 0.5); background: var(--accent-wash); }
+.in2-chip[data-empty]:not(.on) { opacity: 0.5; }
+.in2-chip-n { font-family: var(--font-data); font-size: 12px; color: var(--text-faint); }
+.in2-chip.on .in2-chip-n { color: inherit; }
+
+.in2-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding-left: 64px; }
+.in2-sort { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-faint); }
+.in2-sort select {
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+.in2-sort select:hover { border-color: var(--border-strong); }
+.in2-sort select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.in2-count { font-size: 13px; color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.in2-reset {
+  font: inherit;
+  font-size: 13px;
+  padding: 3px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.in2-reset:hover { color: var(--accent); border-color: var(--border-strong); }
+
+/* ---- หมวด ---- */
+.in2-sec { margin-top: 26px; }
+.in2 .in2-sec-title { margin: 0 0 10px; padding: 0; border: 0; font-size: 16px; font-weight: 600; color: var(--text-dim); }
+.in2 .in2-sec-title::before { display: none; }
+.in2-sec-n { font-family: var(--font-data); font-size: 12.5px; font-weight: 400; color: var(--text-faint); margin-left: 4px; }
+.in2-sec-closed { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--rule); }
+.in2-sec-note { margin: -4px 0 12px; font-size: 13px; color: var(--text-faint); }
+
+.in2-none { margin-top: 20px; padding: 28px 18px; border: 1px dashed var(--border); border-radius: 12px; text-align: center; color: var(--text-dim); }
+
+/* ---- การ์ด ---- */
+.in2-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.in2-card {
+  --dir: var(--accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 16px 12px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+.in2-card[data-dir="positive"] { --dir: var(--green); }
+.in2-card[data-dir="negative"] { --dir: var(--red); }
+.in2-card::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px; background: var(--dir); opacity: 0.9; }
+.in2-card:hover { color: var(--text); border-color: var(--border-strong); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25); }
+.in2-card:hover .in2-title { color: var(--accent); }
+.in2-card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.in2-title { font-size: 15.5px; font-weight: 600; line-height: 1.55; overflow-wrap: anywhere; }
+.in2-dek {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.in2-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.in2-tags .badge { white-space: normal; }
+
+/* margin-top:auto ดันท้ายการ์ดลงล่างสุดทุกใบ — การ์ดในแถวเดียวกันเส้นล่างตรงกัน */
+.in2-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 10px;
+  margin-top: auto;
+  padding-top: 9px;
+  border-top: 1px solid var(--rule);
+}
+.in2-status { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--green); }
+.in2-status i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.in2-status.st-played-out { color: var(--text-dim); }
+.in2-status.st-invalidated { color: var(--red); }
+.in2-meta { font-size: 12.5px; color: var(--text-faint); min-width: 0; overflow-wrap: anywhere; }
+
+/* ปิดแล้ว: ยังเปิดอ่านได้ แต่ต้องดูออกทันทีว่าไม่ใช่ประเด็นที่ยังมีผล */
+.in2-card.is-closed { background: transparent; }
+.in2-card.is-closed::before { opacity: 0.3; }
+.in2-card.is-closed .in2-title { color: var(--text-dim); }
+.in2-card.is-closed:hover .in2-title { color: var(--accent); }
+
+@media (hover: none) {
+  .in2-card:hover { transform: none; box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .in2-card { transition: none; }
+  .in2-card:hover { transform: none; }
+}
+
+/* ---- มือถือ: ชิปเลื่อนแนวนอนแถวเดียว (ไม่ตัดบรรทัดเป็นกำแพง) · ตัวอักษรขั้นต่ำ 13px ---- */
+@media (max-width: 640px) {
+  .in2-lead { font-size: 14.5px; }
+  .in2-filter { display: grid; gap: 4px; }
+  .in2-filter-label { width: auto; }
+  .in2-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    margin: 0 -16px;
+    padding: 2px 16px 4px;
+    /* ขอบขวาจาง = บอกว่ายังเลื่อนต่อได้ */
+    mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent);
+  }
+  .in2-chips::-webkit-scrollbar { display: none; }
+  .in2-chip { flex: none; font-size: 13.5px; padding: 6px 12px; }
+  .in2-chip-n { font-size: 13px; }
+  .in2-bar { padding-left: 0; gap: 8px 12px; }
+  .in2-sort, .in2-count, .in2-reset { font-size: 13px; }
+  .in2-sort select { font-size: 16px; padding: 6px 10px; } /* 16px กัน iOS ซูมตอนแตะ */
+  .in2-grid { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .in2-card { padding: 14px 14px 11px; }
+  .in2-title { font-size: 15.5px; }
+  .in2-dek { font-size: 14px; }
+  .in2-status, .in2-meta, .in2-sec-n, .in2-sec-note { font-size: 13px; }
+}

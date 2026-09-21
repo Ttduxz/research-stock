@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { listHints, listStockSectors } from "@/lib/cached";
 import { segmentsOfHint } from "@/lib/segments";
 import InsightsBrowser from "@/components/InsightsBrowser";
+import "./insights.css";
 
 export const dynamic = "force-dynamic";
 
@@ -20,21 +21,19 @@ export default async function InsightsPage() {
   }));
 
   return (
-    <>
-      <h1>Insights</h1>
-      <p className="subtitle">
-        ประเด็นที่ทีม research เจอระหว่างวิเคราะห์หุ้น แต่กระทบกว้างกว่าตัวหุ้นตัวเดียว — เชิงระบบ/อุตสาหกรรม/มหภาค
-        ทั้งด้านความเสี่ยงและด้านโอกาส กรองตามมุมมอง/กลุ่มอุตสาหกรรม และเลือกลำดับการเรียงได้
-      </p>
+    <div className="in2">
+      <header className="in2-head">
+        <h1>Insights</h1>
+        <p className="in2-lead">
+          ประเด็นระดับอุตสาหกรรมหรือเศรษฐกิจที่เจอระหว่างวิเคราะห์หุ้น และกระทบหุ้นมากกว่าหนึ่งตัว — ทั้งความเสี่ยงและโอกาส
+        </p>
+      </header>
 
       {items.length === 0 ? (
-        <div className="empty-state">
-          ยังไม่มี insight ในระบบ — จะปรากฏที่นี่อัตโนมัติเมื่อเจอประเด็นที่สำคัญพอระหว่างรัน{" "}
-          <code>/research-stock</code>
-        </div>
+        <div className="in2-none">ยังไม่มี insight — จะขึ้นที่นี่เมื่อทีมเจอประเด็นที่สำคัญพอ</div>
       ) : (
         <InsightsBrowser hints={items} />
       )}
-    </>
+    </div>
   );
 }

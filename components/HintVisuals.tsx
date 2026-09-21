@@ -166,9 +166,8 @@ function Bars({ v, go }: { v: HintVisualBars; go: boolean }) {
       <div className="hv-caption" aria-live="polite">
         <b>{cur.label}</b> {cur.display ?? `${fmtNum(cur.value)}${v.unit ? " " + v.unit : ""}`}
         {cur.note && <span className="hv-note"> · {cur.note}</span>}
-        {shown > 0 && v.items[0].value !== 0 && (
-          <span className="hv-note"> · {(cur.value / v.items[0].value).toFixed(1)}× ของ{v.items[0].label}</span>
-        )}
+        {/* เคยต่อท้ายด้วย "x× ของ<แท่งแรก>" ที่เว็บคำนวณเอง — ตัดออก 2026-09-21: ตัวเลขในภาพต้องมีในรายงาน (กติกาเดียวกับตัวตรวจ)
+            และบางภาพแท่งแรกไม่ใช่ฐานที่ควรเทียบ (คนละชนิดกัน) */}
       </div>
     </div>
   );
@@ -613,7 +612,8 @@ function Scale({ v, go }: { v: HintVisualScale; go: boolean }) {
       {now && first != null && first > 0 && (
         <div className="hv-caption">
           <b>ตอนนี้</b> {fmtNum(now.value)}
-          {v.unit ? ` ${v.unit}` : ""} <span className="hv-note">= {(now.value / first).toFixed(1)}× ของจุดต่ำสุดที่รายงานอ้าง</span>
+          {v.unit ? ` ${v.unit}` : ""}
+          {/* เคยมี "= x× ของจุดต่ำสุด" ที่เว็บคำนวณเอง — ตัดออก 2026-09-21 (ตัวเลขในภาพต้องมีในรายงาน) */}
         </div>
       )}
     </div>

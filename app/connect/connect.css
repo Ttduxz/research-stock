@@ -1,0 +1,157 @@
+/* ============================================================
+   หน้า /connect (เชื่อมต่อ AI ผ่าน MCP) — import จาก app/connect/page.tsx เท่านั้น · คลาส cn2- ทั้งหมด
+   คนทั่วไปเห็นก่อน: นี่คืออะไร + 3 ขั้น · รายละเอียดเชิงเทคนิคพับไว้ท้ายหน้า
+   .copy-field (components/CopyField.tsx) ใช้สไตล์จาก globals.css — ที่นี่แค่ปรับระยะในบริบทหน้านี้
+   ตัวอักษรไม่ต่ำกว่า 12px บนจอคอม / 13px ที่ ≤640px · ห้ามล้นแนวนอนที่ 375px
+   ============================================================ */
+
+.cn2 { max-width: 760px; }
+.cn2-head { margin-bottom: 22px; }
+.cn2 .cn2-head h1 { margin-bottom: 6px; }
+.cn2-lead { margin: 0; font-size: 15.5px; line-height: 1.7; color: var(--text); max-width: 56ch; }
+.cn2-scope { margin: 6px 0 0; font-size: 13px; color: var(--text-faint); }
+.cn2-none { padding: 28px 18px; border: 1px dashed var(--border); border-radius: 12px; text-align: center; color: var(--text-dim); }
+
+/* ---- 3 ขั้น: เลขในวงกลมบนเส้นแนวตั้ง ---- */
+.cn2-steps { list-style: none; margin: 0; padding: 18px 18px 6px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; }
+.cn2-steps > li { position: relative; display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 14px; padding-bottom: 18px; }
+.cn2-steps > li:not(:last-child)::after { content: ""; position: absolute; left: 13.5px; top: 30px; bottom: 4px; width: 1px; background: var(--border); }
+.cn2-step-n {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(95, 157, 240, 0.5);
+  background: var(--accent-wash);
+  color: var(--accent);
+  font-family: var(--font-data);
+  font-size: 13px;
+  font-weight: 700;
+}
+.cn2-step-body { min-width: 0; padding-top: 3px; }
+.cn2 .cn2-step-title { margin: 0; padding: 0; border: 0; font-size: 15.5px; font-weight: 600; line-height: 1.5; }
+.cn2 .cn2-step-title::before { display: none; }
+.cn2-step-d { margin: 4px 0 0; font-size: 14px; line-height: 1.65; color: var(--text-dim); }
+.cn2 .copy-field { margin: 10px 0 0; max-width: none; }
+
+/* ---- วิธีต่อแต่ละแอป (พับไว้ ยกเว้น Claude) ---- */
+.cn2-apps { display: grid; margin-top: 10px; border-top: 1px solid var(--rule); }
+.cn2-apps details { border-bottom: 1px solid var(--rule); }
+.cn2-apps summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 2px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  list-style: none;
+}
+.cn2-apps summary::-webkit-details-marker { display: none; }
+.cn2-apps summary::after { content: "+"; flex: none; font-family: var(--font-data); font-weight: 400; color: var(--text-faint); }
+.cn2-apps details[open] summary { color: var(--text); }
+.cn2-apps details[open] summary::after { content: "−"; }
+.cn2-apps summary:hover { color: var(--accent); }
+.cn2-apps summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.cn2-apps details > :not(summary) { margin-top: 0; }
+.cn2-apps details > :last-child { margin-bottom: 12px; }
+.cn2-apps ol { margin: 0 0 12px; padding-left: 22px; font-size: 14px; line-height: 1.8; color: var(--text-dim); }
+.cn2-apps p { margin: 8px 0 0; font-size: 14px; line-height: 1.7; color: var(--text-dim); }
+.cn2-apps p code { font-family: var(--font-data); font-size: 13px; color: var(--text); overflow-wrap: anywhere; }
+
+/* ---- การเชื่อมต่อของคุณ ---- */
+.cn2-sec { margin-top: 34px; }
+.cn2-sec-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.cn2 .cn2-h2 { margin: 0; padding: 0; border: 0; font-size: 17px; font-weight: 600; }
+.cn2 .cn2-h2::before { display: none; }
+.cn2-sec-n { font-family: var(--font-data); font-size: 13px; color: var(--text-faint); }
+.cn2-empty { margin: 0; padding: 14px 16px; border: 1px dashed var(--border); border-radius: 10px; font-size: 14px; color: var(--text-dim); }
+.cn2-conns { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+.cn2-conns li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 2px 14px;
+  padding: 11px 4px 11px 12px;
+  border-bottom: 1px solid var(--rule);
+  border-left: 2px solid var(--green);
+}
+.cn2-conn-id { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; min-width: 0; }
+.cn2-conn-name { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.cn2-conn-kind { font-family: var(--font-data); font-size: 12px; color: var(--text-faint); }
+.cn2-conn-time { grid-column: 1; font-size: 12.5px; color: var(--text-faint); }
+.cn2-conn-act { grid-column: 2; grid-row: 1 / span 2; margin: 0; }
+.cn2-revoke { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-strong); background: transparent; color: var(--red); cursor: pointer; }
+.cn2-revoke:hover { border-color: var(--red); background: var(--red-wash); }
+.cn2-revoke:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- รายละเอียดเพิ่มเติม (พับไว้) ---- */
+.cn2-more { margin-top: 34px; border-top: 1px solid var(--border); }
+.cn2-more > details { border-bottom: 1px solid var(--border); }
+.cn2-more > details > summary {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 2px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+.cn2-more > details > summary::-webkit-details-marker { display: none; }
+.cn2-more > details > summary::after { content: "+"; margin-left: auto; font-family: var(--font-data); font-weight: 400; color: var(--text-faint); }
+.cn2-more > details[open] > summary::after { content: "−"; }
+.cn2-more > details > summary:hover { color: var(--accent); }
+.cn2-more > details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.cn2-more > details > :last-child { margin-bottom: 16px; }
+.cn2-sum-n { font-family: var(--font-data); font-size: 12.5px; font-weight: 400; color: var(--text-faint); }
+.cn2-more-d { margin: 0 0 10px; font-size: 13.5px; line-height: 1.65; color: var(--text-dim); }
+
+.cn2-tools { list-style: none; margin: 0; padding: 0; }
+.cn2-tools li { display: grid; gap: 2px; padding: 9px 0; border-top: 1px solid var(--rule); }
+.cn2-tools li:first-child { border-top: 0; padding-top: 0; }
+.cn2-tool-desc { font-size: 14px; line-height: 1.6; color: var(--text); }
+.cn2-tool-desc em { font-style: normal; font-size: 12px; color: var(--yellow); border: 1px solid rgba(219, 164, 60, 0.45); border-radius: 999px; padding: 0 8px; margin-left: 8px; white-space: nowrap; }
+.cn2-tools code { font-family: var(--font-data); font-size: 12.5px; color: var(--accent); overflow-wrap: anywhere; }
+
+.cn2-facts { margin: 0; padding-left: 20px; font-size: 14px; line-height: 1.75; color: var(--text-dim); }
+
+.cn2-keyform { margin: 0; }
+.cn2-keyrow { display: flex; flex-wrap: wrap; gap: 8px; }
+.cn2-keyrow input {
+  flex: 1 1 220px;
+  min-width: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.cn2-keyrow input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-wash); }
+.cn2-keyrow button { flex: none; font: inherit; font-size: 14px; font-weight: 600; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); cursor: pointer; }
+.cn2-keyrow button:hover { background: var(--accent); color: var(--bg); }
+.cn2-keyrow button:disabled { opacity: 0.6; cursor: wait; }
+.cn2-msg { margin: 10px 0 0; font-size: 13.5px; line-height: 1.6; }
+.cn2-msg.ok { color: var(--green); }
+.cn2-msg.err { color: var(--red); }
+
+.cn2-note { margin: 22px 0 0; font-size: 13px; line-height: 1.7; color: var(--text-faint); }
+
+@media (max-width: 640px) {
+  .cn2-lead { font-size: 15px; }
+  .cn2-scope, .cn2-sec-n, .cn2-sum-n, .cn2-conn-kind, .cn2-conn-time, .cn2-tools code, .cn2-tool-desc em, .cn2-note { font-size: 13px; }
+  .cn2-steps { padding: 16px 14px 4px; }
+  .cn2-steps > li { grid-template-columns: 26px minmax(0, 1fr); gap: 12px; }
+  .cn2-step-n { width: 26px; height: 26px; }
+  .cn2-steps > li:not(:last-child)::after { left: 12.5px; top: 28px; }
+  .cn2-apps ol { padding-left: 18px; }
+  .cn2-conns li { grid-template-columns: minmax(0, 1fr); }
+  .cn2-conn-act { grid-column: 1; grid-row: auto; margin-top: 6px; }
+  .cn2-keyrow input { font-size: 16px; flex-basis: 100%; } /* 16px กัน iOS ซูมตอนแตะ */
+  .cn2-keyrow button { flex: 1 1 100%; padding: 10px 16px; }
+}

@@ -6,31 +6,41 @@ import { requestStock } from "@/app/request/actions";
 import type { RequestState } from "@/lib/stock-requests";
 
 /**
- * ฟอร์มขอให้วิเคราะห์หุ้น — ใช้ท้ายหน้ารวมหุ้น และในผลค้นหาที่ไม่เจอ (เติม ticker ที่พิมพ์ค้นไว้ให้)
+ * ฟอร์มขอให้วิเคราะห์หุ้น (หน้า /request) — ผลค้นหาที่ไม่เจอลิงก์มาพร้อม ?ticker= ให้เติมไว้
  * ข้อความตอบกลับมาจาก server action เสมอ (มีในระบบแล้ว / ส่งแล้ว / เคยขอแล้ว / ขอเกินกำหนด)
+ * ชื่อช่อง (ticker / note) + maxLength ต้องตรงกับที่ app/request/actions.ts อ่าน
  */
 export default function RequestStockForm({ defaultTicker = "" }: { defaultTicker?: string }) {
   const [state, formAction, pending] = useActionState<RequestState | null, FormData>(requestStock, null);
 
   return (
-    <form action={formAction} className="req-form">
-      <div className="req-row">
-        <input
-          name="ticker"
-          defaultValue={defaultTicker}
-          placeholder="Ticker เช่น AAPL"
-          maxLength={15}
-          required
-          autoComplete="off"
-          aria-label="ticker ที่อยากให้วิเคราะห์"
-        />
-        <input name="note" placeholder="ทำไมถึงสนใจ (ไม่ใส่ก็ได้)" maxLength={200} aria-label="เหตุผลที่สนใจ" />
-        <button type="submit" disabled={pending}>
-          {pending ? "กำลังส่ง…" : "ขอให้วิเคราะห์"}
+    <form action={formAction} className="rq2-form">
+      <div className="rq2-fields">
+        <label className="rq2-field rq2-field-ticker">
+          <span>ชื่อย่อหุ้น</span>
+          <input
+            name="ticker"
+            defaultValue={defaultTicker}
+            placeholder="เช่น AAPL"
+            maxLength={15}
+            required
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+        </label>
+        <label className="rq2-field rq2-field-note">
+          <span>
+            ทำไมถึงสนใจ <em>ไม่บังคับ</em>
+          </span>
+          <input name="note" placeholder="เช่น ถือไว้อยู่ อยากรู้แนวโน้ม" maxLength={200} />
+        </label>
+        <button type="submit" disabled={pending} className="rq2-submit">
+          {pending ? "กำลังส่ง…" : "ส่งคำขอ"}
         </button>
       </div>
       {state && (
-        <p className={`req-msg ${state.ok ? "ok" : "err"}`} role="status">
+        <p className={`rq2-msg ${state.ok ? "ok" : "err"}`} role="status">
           {state.message}
           {state.inSystem && state.ticker && (
             <>

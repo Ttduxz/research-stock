@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import HintCard from "@/components/HintCard";
 import { SEGMENTS, OTHER_SEGMENT, segmentLabel } from "@/lib/segments";
 import type { HintSummary } from "@/lib/db";
@@ -43,10 +43,8 @@ function groupByImpact(hints: HintWithSegments[]): [string, HintWithSegments[]][
   return groups.filter(([, list]) => list.length > 0);
 }
 
-type Box = { l: number; t: number; w: number; h: number };
-
-/** แถวปุ่มกรองหนึ่งชุด พร้อมแถบไฮไลต์ที่เลื่อนไปหาปุ่มที่เลือก แทนการสลับสีพรวดเดียว */
-function PillGroup({
+/** แถวชิปกรองหนึ่งชุด — มือถือเลื่อนแนวนอนในแถวเดียว (ไม่ตัดบรรทัดเป็นกำแพงชิป) ดู app/insights/insights.css */
+function ChipRow({
   label,
   options,
   value,
@@ -57,47 +55,22 @@ function PillGroup({
   value: string;
   onChange: (key: string) => void;
 }) {
-  const [box, setBox] = useState<Box | null>(null);
-  const pillsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const measure = () => {
-      const wrap = pillsRef.current;
-      if (!wrap) return;
-      const el = wrap.querySelector<HTMLElement>("button[data-active]");
-      if (!el) {
-        setBox(null);
-        return;
-      }
-      setBox({ l: el.offsetLeft, t: el.offsetTop, w: el.offsetWidth, h: el.offsetHeight });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-    // ปุ่มเปลี่ยนความกว้างได้เมื่อตัวเลขในวงเล็บเปลี่ยน จึงวัดใหม่เมื่อรายการปุ่มเปลี่ยนด้วย
-  }, [value, options]);
-
   return (
-    <div className="filter-row">
-      <span className="filter-label">{label}</span>
-      <div className="filter-pills" ref={pillsRef}>
-        {box && (
-          <span
-            className="nav-slider round"
-            aria-hidden="true"
-            style={{ transform: `translate(${box.l}px, ${box.t}px)`, width: box.w, height: box.h }}
-          />
-        )}
+    <div className="in2-filter" role="group" aria-label={label}>
+      <span className="in2-filter-label">{label}</span>
+      <div className="in2-chips">
         {options.map((o) => (
           <button
             key={o.key}
             type="button"
-            className={o.key === value ? "active" : ""}
-            data-active={o.key === value ? "" : undefined}
+            className={`in2-chip${o.key === value ? " on" : ""}`}
+            aria-pressed={o.key === value}
+            // ชิปที่นับได้ 0 ยังกดได้ (กดแล้วเจอ "ไม่พบ") แต่จางลงให้รู้ล่วงหน้า
+            data-empty={o.count === 0 ? "" : undefined}
             onClick={() => onChange(o.key)}
           >
             {o.label}
-            {o.count != null && <span className="pill-count"> {o.count}</span>}
+            {o.count != null && <span className="in2-chip-n">{o.count}</span>}
           </button>
         ))}
       </div>
@@ -105,18 +78,39 @@ function PillGroup({
   );
 }
 
-/** หน้า /insights: กรองตามมุมมอง (โอกาส/ความเสี่ยง/ผสม) + กลุ่มอุตสาหกรรม แล้วเลือกลำดับการเรียงเอง */
+function Grid({ list }: { list: HintWithSegments[] }) {
+  return (
+    <div className="in2-grid">
+      {list.map((h) => (
+        <HintCard key={h.slug} hint={h} />
+      ))}
+    </div>
+  );
+}
+
+/** หน้า /insights: กรองตามมุมมอง (โอกาส/ความเสี่ยง/ผสม) + กลุ่มอุตสาหกรรม แล้วเลือกลำดับการเรียงเอง
+ *  เรื่องที่ยังมีผลขึ้นก่อน (แบ่งชั้นตามผลกระทบเมื่อเรียงตามผลกระทบ) เรื่องที่ปิดแล้วแยกไว้ท้ายหน้าเป็นหมวดของตัวเอง
+ */
 export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }) {
   const [direction, setDirection] = useState("all");
   const [segment, setSegment] = useState("all");
   const [sort, setSort] = useState("impact");
+
+  const directionOptions = useMemo(
+    () =>
+      DIRECTIONS.map((d) => ({
+        ...d,
+        count: d.key === "all" ? hints.length : hints.filter((h) => h.direction === d.key).length,
+      })),
+    [hints]
+  );
 
   const byDirection = useMemo(
     () => (direction === "all" ? hints : hints.filter((h) => h.direction === direction)),
     [hints, direction]
   );
 
-  // ลำดับปุ่ม segment ยึดจากจำนวน hint ทั้งหมด (ไม่ใช่จำนวนหลังกรอง) — ปุ่มจะได้ไม่สลับที่ใต้เมาส์
+  // ลำดับปุ่ม segment ยึดจากจำนวน hint ทั้งหมด (ไม่ใช่จำนวนหลังกรอง) — ปุ่มจะได้ไม่สลับที่ใต้นิ้ว
   // ทุกครั้งที่เปลี่ยนมุมมอง โชว์เฉพาะกลุ่มที่มี hint จริงในระบบ
   const segmentOrder = useMemo(() => {
     const total: Record<string, number> = {};
@@ -126,7 +120,7 @@ export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }
       .sort((a, b) => total[b] - total[a]);
   }, [hints]);
 
-  // ตัวเลขในวงเล็บนับหลังกรอง direction แล้ว — เลือก "ความเสี่ยง" อยู่ ปุ่มกลุ่มจึงบอกได้ว่ากดแล้วจะเหลือกี่อัน
+  // ตัวเลขบนชิปนับหลังกรอง direction แล้ว — เลือก "ความเสี่ยง" อยู่ ชิปกลุ่มจึงบอกได้ว่ากดแล้วจะเหลือกี่อัน
   const segmentOptions = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const h of byDirection) for (const s of h.segments) counts[s] = (counts[s] ?? 0) + 1;
@@ -136,7 +130,7 @@ export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }
     ];
   }, [segmentOrder, byDirection]);
 
-  const visible = useMemo(() => {
+  const { active, closed } = useMemo(() => {
     const list = segment === "all" ? byDirection : byDirection.filter((h) => h.segments.includes(segment));
     const sorted = [...list];
     if (sort === "newest") sorted.sort((a, b) => b.run_date.localeCompare(a.run_date) || b.id - a.id);
@@ -148,10 +142,14 @@ export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }
           (b.impact_score ?? DEFAULT_SCORE) - (a.impact_score ?? DEFAULT_SCORE) ||
           b.run_date.localeCompare(a.run_date)
       );
-    // เรื่องที่จบแล้ว/ถูกหักล้างแล้วไว้ท้ายสุดเสมอ (ภายในแต่ละกลุ่มยังเรียงตามที่เลือก) — ยังเปิดอ่านย้อนหลังได้
-    return [...sorted.filter((h) => isActiveHint(h.status)), ...sorted.filter((h) => !isActiveHint(h.status))];
+    // เรื่องที่จบแล้ว/ถูกหักล้างแล้วแยกไว้ท้ายสุดเสมอ (ภายในหมวดยังเรียงตามที่เลือก) — ยังเปิดอ่านย้อนหลังได้
+    return {
+      active: sorted.filter((h) => isActiveHint(h.status)),
+      closed: sorted.filter((h) => !isActiveHint(h.status)),
+    };
   }, [byDirection, segment, sort]);
 
+  const shown = active.length + closed.length;
   const filtersOn = direction !== "all" || segment !== "all";
   const reset = () => {
     setDirection("all");
@@ -160,57 +158,64 @@ export default function InsightsBrowser({ hints }: { hints: HintWithSegments[] }
 
   return (
     <>
-      <div className="insight-controls">
-        <PillGroup label="มุมมอง" options={DIRECTIONS} value={direction} onChange={setDirection} />
-        <PillGroup label="กลุ่มอุตสาหกรรม" options={segmentOptions} value={segment} onChange={setSegment} />
-        <div className="filter-row">
-          <span className="filter-label">เรียงตาม</span>
-          <select
-            className="sort-select"
-            value={sort}
-            onChange={(e) => setSort(e.target.value)}
-            aria-label="เรียงลำดับ insight"
-          >
-            {SORTS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <span className="filter-result">
-            แสดง {visible.length} จาก {hints.length} insight
+      <div className="in2-controls">
+        <ChipRow label="มุมมอง" options={directionOptions} value={direction} onChange={setDirection} />
+        <ChipRow label="กลุ่ม" options={segmentOptions} value={segment} onChange={setSegment} />
+        <div className="in2-bar">
+          <label className="in2-sort">
+            <span>เรียง</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="เรียงลำดับ insight">
+              {SORTS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="in2-count">
+            {shown} จาก {hints.length} เรื่อง
           </span>
           {filtersOn && (
-            <button type="button" className="stock-search-clear" onClick={reset}>
+            <button type="button" className="in2-reset" onClick={reset}>
               ล้างตัวกรอง
             </button>
           )}
         </div>
       </div>
 
-      {visible.length === 0 ? (
-        <div className="empty-state">ไม่พบ insight ที่ตรงกับตัวกรองนี้</div>
-      ) : sort === "impact" ? (
-        groupByImpact(visible).map(([label, group]) => (
-          <section key={label}>
-            <h2 className="sector-heading">
-              {label} <span className="sector-count">({group.length})</span>
-            </h2>
-            <div className="stock-grid">
-              {group.map((h) => (
-                <HintCard key={h.slug} hint={h} />
-              ))}
-            </div>
-          </section>
-        ))
+      {shown === 0 ? (
+        <div className="in2-none">ไม่พบ insight ที่ตรงกับตัวกรองนี้</div>
       ) : (
-        <section>
-          <div className="stock-grid">
-            {visible.map((h) => (
-              <HintCard key={h.slug} hint={h} />
+        <>
+          {active.length > 0 &&
+            (sort === "impact" ? (
+              groupByImpact(active).map(([label, group]) => (
+                <section key={label} className="in2-sec">
+                  <h2 className="in2-sec-title">
+                    {label} <span className="in2-sec-n">{group.length}</span>
+                  </h2>
+                  <Grid list={group} />
+                </section>
+              ))
+            ) : (
+              <section className="in2-sec">
+                <h2 className="in2-sec-title">
+                  ยังมีผลอยู่ <span className="in2-sec-n">{active.length}</span>
+                </h2>
+                <Grid list={active} />
+              </section>
             ))}
-          </div>
-        </section>
+
+          {closed.length > 0 && (
+            <section className="in2-sec in2-sec-closed">
+              <h2 className="in2-sec-title">
+                ปิดแล้ว <span className="in2-sec-n">{closed.length}</span>
+              </h2>
+              <p className="in2-sec-note">ทบทวนแล้วว่าเกิดขึ้นครบ หรือถูกหักล้างแล้ว — เก็บไว้อ่านย้อนหลัง</p>
+              <Grid list={closed} />
+            </section>
+          )}
+        </>
       )}
     </>
   );

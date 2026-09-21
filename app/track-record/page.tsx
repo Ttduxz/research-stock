@@ -18,8 +18,9 @@ import {
 } from "@/lib/track-record";
 import { segmentOf, segmentLabel } from "@/lib/segments";
 import { InlineMarkdown } from "@/components/Markdown";
-import ClaimFeed, { type FeedTab } from "@/components/ClaimFeed";
-import Chevron from "@/components/Chevron";
+import ClaimFeed, { ALL_TAB, type FeedTab } from "@/components/ClaimFeed";
+import TrackClaimCard from "@/components/TrackClaimCard";
+import "./track-record.css";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,16 @@ export const metadata: Metadata = {
   title: "Track Record | Tee Stock Research",
   description: "ทฤษฎีที่ทีม theorie ตั้งไว้ แม่นแค่ไหนเมื่อเจอหลักฐานจริง — สถิติจากรอบทบทวนรายสัปดาห์",
 };
+
+/**
+ * หน้า /track-record — หน้าความน่าเชื่อถือของเว็บ (landing / หน้าแรก / login ลิงก์มาที่นี่)
+ *
+ * รื้อใหม่ 2026-09-21 ให้เข้าชุดกับหน้าที่ผู้ใช้อนุมัติแล้ว (login = ตาราง ledger, watchlist = การ์ด + dialog)
+ * ลำดับหน้า: ตารางสรุปมีนิยาม + วันที่ → ข้อที่ผิด (ขึ้นก่อนข้อที่ถูก — งานวิจัยที่น่าเชื่อต้องโชว์ข้อพลาดก่อน)
+ * → การ์ดทุกข้อ (สั้น กดแล้วเปิด dialog) → ตารางละเอียด (พับไว้)
+ * ไม่มี emoji ในหัวข้อ/ป้าย ไม่มีคำเล่นๆ — ผู้ใช้บอกว่าแบบนั้น "ดูไม่ professional"
+ * ตัวเลขทุกตัวมาจากแถว thesis_checks ตรงๆ ผ่าน lib/track-record.ts (ไม่ใช้ราคา)
+ */
 
 const STATUS_CLS: Record<string, string> = {
   confirmed: "ck-confirmed",
@@ -43,9 +54,22 @@ const CLAIM_TYPE_LABEL: Record<string, string> = {
   risk: "ความเสี่ยง (risk)",
 };
 
-const TONE_ICON: Record<Tone, string> = { good: "✓", warn: "!", bad: "✕", unknown: "?" };
+/** ป้ายประเภทแบบสั้นบนการ์ด */
+const CLAIM_TYPE_SHORT: Record<string, string> = {
+  assumption: "ข้อสมมุติ",
+  catalyst: "ปัจจัยกระตุ้น",
+  risk: "ความเสี่ยงที่เตือนไว้",
+};
 
 const pct = (n: number | null) => (n == null ? "–" : `${Math.round(n * 100)}%`);
+
+/** 2026-09-17 → 17 ก.ย. 2569 (วันที่ใน DB เป็นวันตามปฏิทิน ไม่มีเวลา — อ่านเป็น UTC กันเลื่อนวัน) */
+function thDate(d: string | null | undefined): string {
+  if (!d) return "–";
+  const t = new Date(`${d.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(t.getTime())) return d;
+  return t.toLocaleDateString("th-TH", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
+}
 
 // ---------- กลุ่มของรายการ "เคยพูดว่า → ผล" ----------
 
@@ -55,14 +79,22 @@ const pct = (n: number | null) => (n == null ? "–" : `${Math.round(n * 100)}%`
  */
 type FeedGroup = "wrong" | "risk-hit" | "weak" | "right" | "risk-miss" | "wait";
 
-const FEED_TABS: (FeedTab & { key: FeedGroup })[] = [
-  { key: "wrong", label: "🔴 ทายผิด" },
-  { key: "risk-hit", label: "⚠️ ความเสี่ยงที่กระทบหุ้น" },
-  { key: "weak", label: "🟡 เริ่มไม่ใช่" },
-  { key: "right", label: "🟢 ทายถูก" },
-  { key: "risk-miss", label: "ความเสี่ยงที่ไม่กระทบ" },
-  { key: "wait", label: "⏳ ยังไม่รู้ผล" },
+/** ลำดับแท็บ = ลำดับการ์ดในแท็บ "ทั้งหมด" — ข้อที่ผิดขึ้นก่อนข้อที่ถูกเสมอ */
+const FEED_TABS: (FeedTab & { key: FeedGroup | typeof ALL_TAB })[] = [
+  { key: ALL_TAB, label: "ทั้งหมด" },
+  { key: "wrong", label: "ทายผิด", tone: "bad" },
+  { key: "weak", label: "เริ่มไม่ใช่", tone: "warn" },
+  { key: "risk-hit", label: "ความเสี่ยงที่กระทบหุ้น", tone: "bad" },
+  { key: "right", label: "ทายถูก", tone: "good" },
+  { key: "risk-miss", label: "ความเสี่ยงที่ไม่กระทบ", tone: "good" },
+  { key: "wait", label: "ยังไม่รู้ผล", tone: "unknown" },
 ];
+const GROUP_RANK = new Map(FEED_TABS.map((t, i) => [t.key, i]));
+
+/** การ์ดต่อหน้าในรายการ — มากกว่านี้กด "แสดงเพิ่ม" (ข้อทั้งหมดหลายร้อย) */
+const PAGE_SIZE = 24;
+/** ข้อ "เริ่มไม่ใช่" ที่ยกขึ้นมาในส่วนข้อพลาด — ที่เหลืออยู่ในรายการด้านล่าง */
+const WEAK_PREVIEW = 6;
 
 function feedGroup(r: TrackRecordRow): FeedGroup {
   if (r.status === "too-early") return "wait";
@@ -90,8 +122,6 @@ function baseOutcome(r: TrackRecordRow): { text: string; tone: Tone } {
       return { text: "ยังไม่รู้ผล", tone: "unknown" };
   }
 }
-
-const TONE_DOT: Record<Tone, string> = { good: "🟢", warn: "🟡", bad: "🔴", unknown: "⏳" };
 
 const IMPACT_TONE: Record<string, Tone> = { good: "good", bad: "bad", mixed: "warn" };
 const IMPACT_LABEL: Record<string, string> = { good: "ดี", bad: "ร้าย", mixed: "ปนกัน" };
@@ -122,58 +152,86 @@ const hostOf = (url: string) => {
   }
 };
 
+const explainedOf = (r: TrackRecordRow) => !!(r.if_md && r.then_md && r.because_md);
+/** เหตุผลบรรทัดเดียวของผลตรวจ — คำอธิบาย 4 ช่องก่อน แถวเก่า fallback เป็นเหตุผลของ reviewer */
+const reasonOf = (r: TrackRecordRow) => (explainedOf(r) ? r.because_md : r.evidence_md);
+
+// ---------- การ์ด / แถว / รายละเอียดใน dialog ----------
+
+function Outcome({ r }: { r: TrackRecordRow }) {
+  const o = outcome(r);
+  return (
+    <span className="tr2-out" data-tone={o.tone}>
+      <span className="tr2-dot" aria-hidden="true" />
+      {o.text}
+    </span>
+  );
+}
+
+function DialogTitle({ r }: { r: TrackRecordRow }) {
+  return (
+    <>
+      <Outcome r={r} /> · {CLAIM_TYPE_SHORT[r.claim_type] ?? r.claim_type}
+    </>
+  );
+}
+
 /**
- * การ์ดเดียวจบ: "เคยบอกว่าถ้า X → จะส่งผล Y / ตอนนี้ [ผล] เพราะ Z → ส่งผลให้ U" แล้วตามด้วยข่าวต้นทาง
+ * รายละเอียดเต็มของข้อหนึ่ง: "เคยบอกว่าถ้า X → จะส่งผล Y / ตอนนี้ [ผล] เพราะ Z → ส่งผลให้ U" + ข่าวต้นทาง
  * แถวเก่าที่ยังไม่ได้เติมคำอธิบาย 4 ช่อง fallback ไปแสดงข้อความเดิม + เหตุผลของ reviewer ตรงๆ
  */
-function ClaimItem({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
+function ClaimDetail({ r }: { r: TrackRecordRow }) {
   const o = outcome(r);
   const sources = sourcesOf(r.sources_json);
-  const explained = !!(r.if_md && r.then_md && r.because_md);
+  const explained = explainedOf(r);
   const waiting = r.status === "too-early";
   return (
-    <article className={`trk-item trk-${o.tone}`} data-group={feedGroup(r)} data-ticker={r.ticker} hidden={hidden}>
-      {/* ไม่ต้องมีชื่อหุ้นซ้ำ — การ์ดอยู่ในกลุ่มของหุ้นตัวนั้นอยู่แล้ว (ดู trk-stock ใน TrackRecordPage) */}
-      <header className="trk-item-head">
-        <span className="trk-result">
-          {TONE_DOT[o.tone]} {o.text}
-        </span>
-        <span className="trk-meta">
-          {r.claim_type === "risk" ? "เตือนความเสี่ยง" : r.claim_type === "catalyst" ? "ทายว่าจะมีตัวกระตุ้น" : "ข้อสมมุติ"}
-        </span>
-        {r.impact && (
-          <span className={`trk-impact trk-${IMPACT_TONE[r.impact] ?? "unknown"}`}>
-            ผลต่อหุ้น: {IMPACT_LABEL[r.impact] ?? r.impact}
-          </span>
+    <div className="tr2-detail" data-tone={o.tone}>
+      <dl className="tr2-facts">
+        <div>
+          <dt>รายงานต้นทาง</dt>
+          <dd>{thDate(r.origin_run_date)}</dd>
+        </div>
+        <div>
+          <dt>ตรวจล่าสุด</dt>
+          <dd>{thDate(r.review_date)}</dd>
+        </div>
+        {r.confidence != null && (
+          <div>
+            <dt>ความมั่นใจที่ประกาศ</dt>
+            <dd>{r.confidence}</dd>
+          </div>
         )}
-      </header>
+        {r.impact && (
+          <div>
+            <dt>ผลต่อหุ้น</dt>
+            <dd className="tr2-impact" data-tone={IMPACT_TONE[r.impact] ?? "unknown"}>
+              {IMPACT_LABEL[r.impact] ?? r.impact}
+            </dd>
+          </div>
+        )}
+      </dl>
 
-      <div className="trk-said">
-        <span className="trk-step">
-          💬 เคยบอกว่า{explained ? " ถ้า" : ""}{" "}
-          <span className="trk-date">
-            ({r.origin_run_date ?? "?"}
-            {r.confidence != null && <> · มั่นใจ {r.confidence}</>})
-          </span>
-        </span>
+      <section className="tr2-step">
+        <h3>เคยบอกว่า{explained ? "ถ้า" : ""}</h3>
         <p>
           <InlineMarkdown text={explained ? r.if_md : r.claim} />
         </p>
         {explained && (
           <>
-            <span className="trk-step trk-arrow">➡️ จะส่งผล</span>
+            <h3>จะส่งผล</h3>
             <p>
               <InlineMarkdown text={r.then_md} />
             </p>
           </>
         )}
-      </div>
+      </section>
 
-      <div className="trk-why">
-        <span className="trk-step">
-          {TONE_DOT[o.tone]} ตอนนี้: <b className="trk-outcome">{o.text}</b>
-          {waiting ? "" : " เพราะ"} <span className="trk-date">(ตรวจ {r.review_date})</span>
-        </span>
+      <section className="tr2-step tr2-now">
+        <h3>
+          ตอนนี้: <b>{o.text}</b>
+          {waiting ? "" : " เพราะ"}
+        </h3>
         {explained ? (
           <p>
             <InlineMarkdown text={r.because_md} />
@@ -183,83 +241,153 @@ function ClaimItem({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
             <InlineMarkdown text={r.evidence_md} />
           </p>
         ) : (
-          <p className="trk-thin">reviewer ไม่ได้เขียนเหตุผลไว้</p>
+          <p className="tr2-faint">ผู้ตรวจไม่ได้เขียนเหตุผลไว้</p>
         )}
         {explained && r.so_md && (
           <>
-            <span className="trk-step trk-arrow">➡️ ส่งผลให้</span>
+            <h3>ส่งผลให้</h3>
             <p>
               <InlineMarkdown text={r.so_md} />
             </p>
           </>
         )}
-        {sources.length > 0 && (
-          <div className="trk-sources">
-            ข่าวต้นทาง:{" "}
+      </section>
+
+      {sources.length > 0 && (
+        <section className="tr2-src">
+          <h3>หลักฐานที่ใช้ตัดสิน</h3>
+          <ul>
             {sources.map((s, i) => (
-              <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" title={s.title}>
-                {s.title ? (s.title.length > 60 ? `${s.title.slice(0, 60)}…` : s.title) : hostOf(s.url!)}
-                {s.published_at ? ` (${s.published_at})` : ""} ↗
-              </a>
+              <li key={i}>
+                <a href={s.url} target="_blank" rel="noopener noreferrer">
+                  {s.title || hostOf(s.url!)} ↗
+                </a>
+                {s.published_at && <span className="tr2-faint"> · {s.published_at}</span>}
+              </li>
             ))}
-          </div>
-        )}
-      </div>
+          </ul>
+        </section>
+      )}
 
       {explained && (
-        <details className="trk-orig">
-          <summary>ข้อความเดิมตรงตัว + เหตุผลฉบับเต็ม</summary>
-          <p className="trk-orig-claim">
+        <section className="tr2-orig">
+          <h3>ข้อความเดิมในรายงาน (ตรงตัว)</h3>
+          <p>
             <InlineMarkdown text={r.claim} />
           </p>
           {r.evidence_md && (
-            <p>
-              <InlineMarkdown text={r.evidence_md} />
-            </p>
+            <>
+              <h3>เหตุผลฉบับเต็มของผู้ตรวจ</h3>
+              <p>
+                <InlineMarkdown text={r.evidence_md} />
+              </p>
+            </>
           )}
-        </details>
+        </section>
       )}
 
-      <footer className="trk-item-foot">
-        {r.theory_title && <>จากทฤษฎี &ldquo;{r.theory_title}&rdquo; — </>}
+      <p className="tr2-dlg-foot">
+        {r.theory_title && <>จากทฤษฎี &ldquo;{r.theory_title}&rdquo; · </>}
         <Link href={`/stock/${r.ticker}`}>อ่านรายงาน {r.ticker} ฉบับเต็ม →</Link>
-      </footer>
-    </article>
+      </p>
+    </div>
+  );
+}
+
+/** การ์ดในรายการ: ticker + ผล / ข้อความ 3 บรรทัด / ประเภท + วันที่ตรวจ */
+function ClaimCard({ r, hidden }: { r: TrackRecordRow; hidden: boolean }) {
+  const o = outcome(r);
+  return (
+    <TrackClaimCard
+      className="tr2-card"
+      ticker={r.ticker}
+      group={feedGroup(r)}
+      hidden={hidden}
+      title={<DialogTitle r={r} />}
+      detail={<ClaimDetail r={r} />}
+      face={
+        <div className="tr2-card-in" data-tone={o.tone}>
+          <div className="tr2-card-top">
+            <span className="tr2-tk">{r.ticker}</span>
+            <Outcome r={r} />
+          </div>
+          <p className="tr2-card-claim">
+            <InlineMarkdown text={explainedOf(r) ? r.if_md : r.claim} />
+          </p>
+          <div className="tr2-card-foot">
+            <span>{CLAIM_TYPE_SHORT[r.claim_type] ?? r.claim_type}</span>
+            <span>ตรวจ {thDate(r.review_date)}</span>
+          </div>
+        </div>
+      }
+    />
+  );
+}
+
+/** แถวในส่วน "ข้อที่ผิด": ticker / ข้อความเดิม 1 บรรทัด / เหตุผล 2 บรรทัด / วันที่ */
+function MissRow({ r }: { r: TrackRecordRow }) {
+  const o = outcome(r);
+  const why = reasonOf(r);
+  return (
+    <TrackClaimCard
+      className="tr2-miss"
+      ticker={r.ticker}
+      title={<DialogTitle r={r} />}
+      detail={<ClaimDetail r={r} />}
+      face={
+        <div className="tr2-miss-in" data-tone={o.tone}>
+          <span className="tr2-tk">{r.ticker}</span>
+          <div className="tr2-miss-text">
+            <p className="tr2-miss-claim">
+              <InlineMarkdown text={explainedOf(r) ? r.if_md : r.claim} />
+            </p>
+            {why && (
+              <p className="tr2-miss-why">
+                <span className="tr2-k">เหตุผล</span> <InlineMarkdown text={why} />
+              </p>
+            )}
+          </div>
+          <span className="tr2-miss-date">{thDate(r.review_date)}</span>
+        </div>
+      }
+    />
   );
 }
 
 // ---------- ส่วนสรุป ----------
 
-function Dots({ filled }: { filled: number }) {
+/** แถบสัดส่วนผลตรวจ — ทุกช่องมีป้ายกำกับ (ผู้ใช้สับสนกับแถบสีที่ไม่มีตัวเลข) */
+function ResultBar({ t }: { t: Tally }) {
+  const parts: { key: string; label: string; cls: string; n: number }[] = [
+    { key: "confirmed", label: "ยืนยัน", cls: "ck-confirmed", n: t.counts.confirmed },
+    { key: "weakened", label: "เริ่มไม่ใช่", cls: "ck-weakened", n: t.counts.weakened },
+    { key: "broken", label: "ผิด", cls: "ck-broken", n: t.counts.broken },
+    { key: "too-early", label: "ยังรอผล", cls: "ck-early", n: t.counts["too-early"] },
+  ];
+  if (t.total === 0) return null;
   return (
-    <span className="trk-dots" aria-hidden="true">
-      {Array.from({ length: 10 }, (_, i) => (
-        <span key={i} className={i < filled ? "on" : ""} />
-      ))}
-    </span>
-  );
-}
-
-function AnswerCard({
-  question,
-  tone,
-  answer,
-  children,
-}: {
-  question: string;
-  tone: Tone;
-  answer: React.ReactNode;
-  children?: React.ReactNode;
-}) {
-  return (
-    <div className={`trk-answer trk-${tone}`}>
-      <div className="trk-q">{question}</div>
-      <div className="trk-a">
-        <span className="trk-icon">{TONE_ICON[tone]}</span>
-        <span>{answer}</span>
+    <figure className="tr2-fig">
+      <figcaption>ผลตรวจสมมุติฐาน + ปัจจัยกระตุ้น {t.total.toLocaleString()} ข้อ</figcaption>
+      <div className="tr2-bar" role="img" aria-label={parts.map((p) => `${p.label} ${p.n} ข้อ`).join(", ")}>
+        {parts.map((p) =>
+          p.n > 0 ? (
+            <span key={p.key} className={`tr2-seg ${p.cls}`} style={{ width: `${(p.n / t.total) * 100}%` }}>
+              {p.n / t.total >= 0.09 ? p.n : ""}
+            </span>
+          ) : null
+        )}
       </div>
-      {children && <div className="trk-a-detail">{children}</div>}
-    </div>
+      <ul className="tr2-legend">
+        {parts.map((p) => (
+          <li key={p.key}>
+            <span className={`tr2-sw ${p.cls}`} aria-hidden="true" />
+            {p.label}
+            <b>{p.n}</b>
+            <span className="tr2-faint">{pct(p.n / t.total)}</span>
+          </li>
+        ))}
+      </ul>
+    </figure>
   );
 }
 
@@ -325,39 +453,46 @@ function GroupTable({ groups, firstCol, showExpected = false }: { groups: Group[
 export default async function TrackRecordPage() {
   const rows = await listTrackRecordRows();
   const thesis = rows.filter(isThesisClaim);
+  const risks = rows.filter((r) => !isThesisClaim(r));
 
-  const all = tally(rows);
   const thesisT = tally(thesis);
+  const riskT = tally(risks);
 
   const dates = rows.map((r) => r.review_date).filter(Boolean).sort();
   const firstReview = dates[0];
-  const earlyShare = all.total > 0 ? all.counts["too-early"] / all.total : 0;
+  const lastReview = dates[dates.length - 1];
+  const spanDays =
+    firstReview && lastReview
+      ? Math.round((Date.parse(`${lastReview.slice(0, 10)}T00:00:00Z`) - Date.parse(`${firstReview.slice(0, 10)}T00:00:00Z`)) / 86_400_000)
+      : null;
+  const companies = new Set(rows.map((r) => r.ticker)).size;
 
-  const feedCount = new Map<FeedGroup, number>();
-  for (const r of rows) feedCount.set(feedGroup(r), (feedCount.get(feedGroup(r)) ?? 0) + 1);
-  const wrongN = feedCount.get("wrong") ?? 0;
-  const riskHitN = feedCount.get("risk-hit") ?? 0;
-  // เปิดหน้ามาเจอเรื่องที่ต้องดูก่อน ถ้าไม่มีเลยค่อยโชว์ข้อที่ทายถูก
-  const defaultTab = FEED_TABS.find((t) => (feedCount.get(t.key) ?? 0) > 0)?.key ?? "right";
-  const wrongTickers = [...new Set(rows.filter((r) => feedGroup(r) === "wrong").map((r) => r.ticker))];
+  const byGroup = new Map<FeedGroup, TrackRecordRow[]>();
+  for (const r of rows) byGroup.set(feedGroup(r), [...(byGroup.get(feedGroup(r)) ?? []), r]);
+  const newestFirst = (a: TrackRecordRow, b: TrackRecordRow) =>
+    b.review_date.localeCompare(a.review_date) || a.ticker.localeCompare(b.ticker);
+  const wrong = [...(byGroup.get("wrong") ?? [])].sort(newestFirst);
+  const weak = [...(byGroup.get("weak") ?? [])].sort(newestFirst);
+  const riskHitN = byGroup.get("risk-hit")?.length ?? 0;
+
+  // ลำดับในรายการ: ผิด → เริ่มไม่ใช่ → ความเสี่ยงที่กระทบ → ถูก → … (ตาม FEED_TABS) แล้วรอบตรวจใหม่สุดก่อน
+  const feed = [...rows].sort(
+    (a, b) => (GROUP_RANK.get(feedGroup(a)) ?? 99) - (GROUP_RANK.get(feedGroup(b)) ?? 99) || newestFirst(a, b)
+  );
 
   const segments = groupBy(thesis, (r) => segmentLabel(segmentOf(r.sector)));
   const calib = calibrationVerdict(thesis);
   const bw = bestAndWorst(segments);
-
-  const hitRateTone: Tone =
-    thesisT.resolved < MIN_RESOLVED || thesisT.confirmRate == null
-      ? "unknown"
-      : thesisT.confirmRate >= 0.65
-        ? "good"
-        : thesisT.confirmRate >= 0.5
-          ? "warn"
-          : "bad";
+  const thinSample = thesisT.resolved < MIN_RESOLVED;
 
   return (
-    <>
-      <h1>Track Record</h1>
-      <p className="subtitle">ทุกสัปดาห์เราเช็คว่าสิ่งที่รายงานทำนายไว้ เกิดขึ้นจริงไหม — หน้านี้สรุปผลให้</p>
+    <div className="tr2">
+      <p className="tr2-eyebrow">Track Record</p>
+      <h1 className="tr2-title">ผลงานย้อนหลัง</h1>
+      <p className="tr2-lead">
+        ทุกสัปดาห์ผู้ตรวจนำข้อสรุปในรายงานเดิมมาตัดสินด้วยหลักฐานใหม่ที่มีลิงก์อ้างอิง หน้านี้รวมผลทั้งที่ถูกและผิด
+        โดยไม่ใช้ราคาหุ้นเป็นหลักฐาน
+      </p>
 
       {rows.length === 0 ? (
         <div className="empty-state">
@@ -365,113 +500,169 @@ export default async function TrackRecordPage() {
         </div>
       ) : (
         <>
-          <div className="trk-young">
-            ⏳ เพิ่งเริ่มเก็บ ({firstReview}) · <b>ยังรู้ผลไม่ถึง {pct(1 - earlyShare)}</b> ของคำทำนายทั้งหมด —
-            ตัวเลขยังขยับได้อีกมาก
-          </div>
+          <section className="tr2-top" aria-label="สรุปผลการตรวจ">
+            <div className="tr2-ledger">
+              <div className="tr2-ledger-head">
+                <span>สรุปผลการตรวจ</span>
+                <span>ข้อมูล ณ {thDate(lastReview)}</span>
+              </div>
+              <dl>
+                <div className="tr2-row">
+                  <dt>
+                    สัดส่วนที่หลักฐานยืนยัน
+                    <small>
+                      ยืนยัน {thesisT.counts.confirmed} จาก {thesisT.resolved} ข้อที่ตัดสินแล้ว (สมมุติฐาน + ปัจจัยกระตุ้น)
+                      {thinSample && ` · ต่ำกว่า ${MIN_RESOLVED} ข้อ ยังอ่านเป็นแนวโน้มไม่ได้`}
+                    </small>
+                  </dt>
+                  <dd>{thesisT.confirmRate == null ? "–" : `${(thesisT.confirmRate * 100).toFixed(1)}%`}</dd>
+                </div>
+                <div className="tr2-row">
+                  <dt>
+                    ตัดสินแล้ว / ยังรอผล
+                    <small>ข้อที่ยังรอผลไม่นับในสัดส่วนด้านบน</small>
+                  </dt>
+                  <dd>
+                    {thesisT.resolved} <span className="tr2-dd-sep">/</span> {thesisT.counts["too-early"]}
+                  </dd>
+                </div>
+                <div className="tr2-row tr2-row-bad">
+                  <dt>
+                    ผิด / เริ่มไม่ใช่
+                    <small>ผิด = หลักฐานหักล้าง · เริ่มไม่ใช่ = หลักฐานใหม่ค้าน แต่ยังไม่ถึงขั้นหักล้าง</small>
+                  </dt>
+                  <dd>
+                    <a href="#misses">
+                      {thesisT.counts.broken} <span className="tr2-dd-sep">/</span> {thesisT.counts.weakened}
+                    </a>
+                  </dd>
+                </div>
+                <div className="tr2-row">
+                  <dt>
+                    ความเสี่ยงที่เตือนไว้แล้วกระทบหุ้น
+                    <small>
+                      จากความเสี่ยงทั้งหมด {riskT.total} ข้อ (รู้ผลแล้ว {riskT.resolved}) — นับแยก เพราะความเสี่ยงที่
+                      &ldquo;ยืนยัน&rdquo; คือเรื่องร้ายเกิดจริง ไม่ใช่ความแม่นของทฤษฎี
+                    </small>
+                  </dt>
+                  <dd>
+                    <a href="#claims-risk-hit">{riskHitN}</a>
+                  </dd>
+                </div>
+                <div className="tr2-row">
+                  <dt>
+                    ข้อสรุปที่ติดตามทั้งหมด
+                    <small>
+                      จาก {companies} บริษัท · สมมุติฐาน + ปัจจัยกระตุ้น {thesisT.total} · ความเสี่ยง {riskT.total}
+                    </small>
+                  </dt>
+                  <dd>{rows.length.toLocaleString()}</dd>
+                </div>
+              </dl>
+              <p className="tr2-note">
+                เริ่มเก็บผลเมื่อ {thDate(firstReview)}
+                {spanDays != null && ` (${spanDays} วัน)`} ช่วงเก็บข้อมูลยังสั้น ตัวเลขจึงเปลี่ยนแปลงได้มาก
+                และข้อที่รู้ผลเร็วมักเป็นเรื่องใกล้ตัวที่ตัดสินง่าย สัดส่วนช่วงแรกจึงมักสูงกว่าที่จะเป็นในระยะยาว
+              </p>
+            </div>
 
-          <div className="trk-answers">
-            <AnswerCard
-              question="ทฤษฎีของเราถูกบ่อยแค่ไหน?"
-              tone={hitRateTone}
-              answer={
-                thesisT.confirmRate == null ? (
-                  "ยังไม่มีข้อที่รู้ผล"
-                ) : (
-                  <>
-                    ถูก <b className="trk-big">{outOf10(thesisT.confirmRate)} ใน 10</b> ข้อ
-                  </>
-                )
-              }
+            <div className="tr2-side">
+              <ResultBar t={thesisT} />
+              <dl className="tr2-obs">
+                <div>
+                  <dt>ความมั่นใจที่ประกาศในรายงาน เชื่อได้ไหม</dt>
+                  <dd data-tone={calib.tone}>{calib.answer}</dd>
+                  <dd className="tr2-obs-note">{calib.detail}</dd>
+                </div>
+                <div>
+                  <dt>แยกตามกลุ่มอุตสาหกรรม</dt>
+                  {bw ? (
+                    <>
+                      <dd>
+                        สูงสุด {bw.best.label} · ต่ำสุด {bw.worst.label}
+                      </dd>
+                      <dd className="tr2-obs-note">
+                        {bw.best.label} ยืนยัน {outOf10(bw.best.tally.confirmRate!)} ใน 10 · {bw.worst.label} ยืนยัน{" "}
+                        {outOf10(bw.worst.tally.confirmRate!)} ใน 10 (นับเฉพาะกลุ่มที่ตัดสินแล้วอย่างน้อย {MIN_RESOLVED} ข้อ)
+                      </dd>
+                    </>
+                  ) : (
+                    <dd className="tr2-obs-note">ยังมีกลุ่มที่ตัดสินแล้วครบ {MIN_RESOLVED} ข้อไม่พอให้เทียบ</dd>
+                  )}
+                </div>
+              </dl>
+            </div>
+          </section>
+
+          <section className="tr2-sec" id="misses" aria-labelledby="misses-title">
+            <div className="tr2-sec-head">
+              <h2 id="misses-title" className="tr2-h2">
+                ข้อที่ทายผิด
+              </h2>
+              <span className="tr2-sec-note">{wrong.length} ข้อ · กดเพื่อดูเหตุผลและหลักฐาน</span>
+            </div>
+            {wrong.length === 0 ? (
+              <p className="tr2-empty">ยังไม่มีข้อที่หลักฐานหักล้าง</p>
+            ) : (
+              <div className="tr2-misses">
+                {wrong.map((r) => (
+                  <MissRow key={`${r.ticker}-${r.claim}`} r={r} />
+                ))}
+              </div>
+            )}
+
+            {weak.length > 0 && (
+              <>
+                <div className="tr2-sec-head tr2-sub-head">
+                  <h3 className="tr2-h3">เริ่มไม่ใช่</h3>
+                  <span className="tr2-sec-note">
+                    {weak.length} ข้อ · หลักฐานใหม่ค้าน แต่ยังไม่ถึงขั้นหักล้าง
+                    {weak.length > WEAK_PREVIEW && ` · แสดง ${WEAK_PREVIEW} ข้อล่าสุด`}
+                  </span>
+                </div>
+                <div className="tr2-misses">
+                  {weak.slice(0, WEAK_PREVIEW).map((r) => (
+                    <MissRow key={`${r.ticker}-${r.claim}`} r={r} />
+                  ))}
+                </div>
+                {weak.length > WEAK_PREVIEW && (
+                  <a className="tr2-link" href="#claims-weak">
+                    ดูทั้งหมด {weak.length} ข้อ →
+                  </a>
+                )}
+              </>
+            )}
+          </section>
+
+          <section className="tr2-sec" aria-labelledby="claims">
+            <div className="tr2-sec-head">
+              <h2 id="claims" className="tr2-h2">
+                ทุกข้อที่ตรวจแล้ว
+              </h2>
+              <span className="tr2-sec-note">กดการ์ดเพื่อดู เคยบอกว่าถ้า → จะส่งผล / ตอนนี้ เพราะ → ส่งผลให้</span>
+            </div>
+            <ClaimFeed
+              tabs={FEED_TABS}
+              items={feed.map((r) => ({ group: feedGroup(r), ticker: r.ticker }))}
+              defaultTab={ALL_TAB}
+              pageSize={PAGE_SIZE}
             >
-              {thesisT.confirmRate != null && <Dots filled={outOf10(thesisT.confirmRate)} />}
-              นับจาก {thesisT.resolved} ข้อที่รู้ผลแล้ว · <a href="#claims-right">ดูว่าถูกเพราะอะไร</a>
-            </AnswerCard>
+              {feed.map((r, i) => (
+                <ClaimCard key={`${r.ticker}-${r.claim}`} r={r} hidden={i >= PAGE_SIZE} />
+              ))}
+            </ClaimFeed>
+          </section>
 
-            <AnswerCard question="ตัวเลข &ldquo;ความมั่นใจ&rdquo; ในรายงานเชื่อได้ไหม?" tone={calib.tone} answer={calib.answer}>
-              {calib.detail}
-            </AnswerCard>
-
-            <AnswerCard
-              question="กลุ่มไหนเราแม่น กลุ่มไหนต้องระวัง?"
-              tone={bw ? "warn" : "unknown"}
-              answer={bw ? <>ระวังรายงานกลุ่ม <b>{bw.worst.label}</b></> : "ยังเร็วไปที่จะบอก"}
-            >
-              {bw && (
-                <>
-                  แม่นสุด: {bw.best.label} (ถูก {outOf10(bw.best.tally.confirmRate!)} ใน 10) · แย่สุด: {bw.worst.label} (ถูก{" "}
-                  {outOf10(bw.worst.tally.confirmRate!)} ใน 10)
-                </>
-              )}
-            </AnswerCard>
-
-            <AnswerCard
-              question="มีอะไรต้องไปดูไหม?"
-              tone={wrongN > 0 ? "bad" : riskHitN > 0 ? "warn" : "good"}
-              answer={
-                wrongN === 0 && riskHitN === 0 ? (
-                  "ไม่มี"
-                ) : (
-                  <>
-                    {wrongN > 0 && (
-                      <a href="#claims-wrong">
-                        ทายผิด <b>{wrongN}</b> ข้อ
-                      </a>
-                    )}
-                    {wrongN > 0 && riskHitN > 0 && " · "}
-                    {riskHitN > 0 && (
-                      <a href="#claims-risk-hit">
-                        ความเสี่ยงที่กระทบหุ้น <b>{riskHitN}</b> ข้อ
-                      </a>
-                    )}
-                  </>
-                )
-              }
-            >
-              {wrongN > 0 && <>ทายผิดที่ {wrongTickers.join(", ")} · กดเพื่อดูเหตุผลด้านล่าง</>}
-            </AnswerCard>
-          </div>
-
-          <h2 className="sector-heading" id="claims">
-            เคยพูดว่าอะไร แล้วเป็นยังไง
-          </h2>
-          <p className="trk-lead">ทุกข้อที่เคยทำนายไว้ พร้อมผลตรวจและเหตุผล — เลือกดูตามผล หรือเลือกหุ้นตัวเดียว</p>
-          <ClaimFeed tabs={FEED_TABS} items={rows.map((r) => ({ group: feedGroup(r), ticker: r.ticker }))} defaultTab={defaultTab}>
-            {/* จัดกลุ่มตามหุ้นแล้วพับไว้เหลือแค่ชื่อ — หุ้นบางตัวมีหลายสิบข้อ ถ้ากางทุกข้อทีเดียวหน้าจะรก
-                จำนวนข้อ/การซ่อนกลุ่มที่ว่าง คำนวณจากแท็บเริ่มต้นตรงนี้ แล้ว ClaimFeed อัปเดตต่อตอนสลับแท็บ */}
-            {[...new Set(rows.map((r) => r.ticker))].sort().map((ticker) => {
-              const mine = rows.filter((r) => r.ticker === ticker);
-              const n = mine.filter((r) => feedGroup(r) === defaultTab).length;
-              return (
-                <details key={ticker} className="trk-stock" data-stock-group={ticker} hidden={n === 0}>
-                  <summary className="trk-stock-sum">
-                    <span className="trk-ticker">{ticker}</span>
-                    <span className="trk-stock-count" data-stock-count="">
-                      {n} ข้อ
-                    </span>
-                    <span className="trk-chevron" aria-hidden="true">
-                      <Chevron />
-                    </span>
-                  </summary>
-                  <div className="trk-stock-body">
-                    {mine.map((r) => (
-                      <ClaimItem key={`${r.ticker}-${r.claim}`} r={r} hidden={feedGroup(r) !== defaultTab} />
-                    ))}
-                  </div>
-                </details>
-              );
-            })}
-          </ClaimFeed>
-
-          <details className="trk-more trk-detail">
-            <summary>ตัวเลขละเอียด (สำหรับคนที่อยากดูลึก)</summary>
+          <details className="tr2-tables">
+            <summary>ตารางละเอียด: แยกตามความมั่นใจ ประเภท กลุ่มอุตสาหกรรม และ verdict</summary>
 
             <div className="trk-howto">
               <b>วิธีอ่าน:</b> ทุกข้อทำนายถูกให้เกรดเป็น <span className="ck-dot ck-confirmed">✓ ถูก</span>{" "}
               <span className="ck-dot ck-weakened">! อ่อนลง</span> <span className="ck-dot ck-broken">✕ ผิด</span>{" "}
-              <span className="ck-dot ck-early">○ ยังไม่รู้ผล</span> · คอลัมน์ &ldquo;ถูก&rdquo; นับเฉพาะข้อที่รู้ผลแล้ว ·
-              ติด <span className="trk-thin">*</span> = รู้ผลไม่ถึง {MIN_RESOLVED} ข้อ ยังเชื่อไม่ได้ · ความเสี่ยงไม่ถูกนับรวม
-              เพราะความเสี่ยงที่ &ldquo;ถูก&rdquo; คือเรื่องร้ายที่เกิดจริง
+              <span className="ck-dot ck-early">○ ยังไม่รู้ผล</span> (สีเดียวกับแถบในคอลัมน์ &ldquo;สัดส่วนผล&rdquo;) ·
+              คอลัมน์ &ldquo;ถูก&rdquo; นับเฉพาะข้อที่รู้ผลแล้ว · ติด <span className="trk-thin">*</span> = รู้ผลไม่ถึง{" "}
+              {MIN_RESOLVED} ข้อ ยังเชื่อไม่ได้ · ความเสี่ยงไม่ถูกนับรวม เพราะความเสี่ยงที่ &ldquo;ถูก&rdquo;
+              คือเรื่องร้ายที่เกิดจริง
             </div>
 
             <h3 className="trk-h3">ความมั่นใจ เทียบกับ ผลจริง</h3>
@@ -497,6 +688,6 @@ export default async function TrackRecordPage() {
           </details>
         </>
       )}
-    </>
+    </div>
   );
 }
