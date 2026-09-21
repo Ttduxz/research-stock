@@ -1,9 +1,11 @@
 /**
- * ราคาตลาดสด — ใช้เฉพาะหน้า /best-price เพื่อคำนวณส่วนต่างถึงเป้าจากราคาปัจจุบัน
+ * ราคาตลาดสด — ใช้ 2 หน้า:
+ *  - /best-price (getQuotes) คำนวณส่วนต่างถึงเป้าจากราคาปัจจุบัน + ราคาปิด ~2 ปีสำหรับ EMA
+ *  - /watchlist (getLatestQuotes) ราคาล่าสุด + % วันนี้บนการ์ด ดึงช่วง 1 วันพอ
  *
  * แหล่ง: Yahoo Finance chart endpoint (ไม่ต้องใช้ API key)
  * เป็น endpoint ที่ไม่เป็นทางการ — ถ้าล่ม/โดน rate limit ต้องไม่ทำให้หน้าพัง
- * ผู้เรียกต้อง fallback ไปใช้ price_at_run เองเมื่อไม่มีราคาของ ticker นั้น
+ * ผู้เรียกต้อง fallback เองเมื่อไม่มีราคาของ ticker นั้น (/best-price → price_at_run, /watchlist → price_at_review)
  */
 
 export interface Quote {
@@ -84,13 +86,43 @@ async function fetchOne(ticker: string): Promise<Quote | null> {
   }
 }
 
-/** ดึงราคาหลายตัวพร้อมกัน — ตัวที่ดึงไม่ได้จะไม่อยู่ใน Map */
-export async function getQuotes(tickers: string[]): Promise<Map<string, Quote>> {
+/** ดึงหลายตัวพร้อมกัน — ตัวที่ดึงไม่ได้จะไม่อยู่ใน Map */
+async function fetchMany(tickers: string[], one: (t: string) => Promise<Quote | null>): Promise<Map<string, Quote>> {
   const unique = [...new Set(tickers)];
-  const settled = await Promise.allSettled(unique.map(fetchOne));
+  const settled = await Promise.allSettled(unique.map(one));
   const out = new Map<string, Quote>();
   for (const r of settled) {
     if (r.status === "fulfilled" && r.value) out.set(r.value.ticker, r.value);
   }
   return out;
+}
+
+/** ราคา + ราคาปิด ~2 ปี (EMA ของ /best-price) */
+export async function getQuotes(tickers: string[]): Promise<Map<string, Quote>> {
+  return fetchMany(tickers, fetchOne);
+}
+
+async function fetchLatest(ticker: string): Promise<Quote | null> {
+  try {
+    const res = await fetchChart(ticker, "1d");
+    if (!res.ok) return null;
+    const json = await res.json();
+    const q = parseQuote(ticker, json);
+    if (!q) return null;
+    // บางตัว Yahoo ไม่ส่ง regularMarketChangePercent — ช่วง 1d นี้ chartPreviousClose = ราคาปิดวันก่อน คำนวณเองได้
+    // (ใช้ได้เฉพาะ range=1d — ช่วงยาวกว่านี้ chartPreviousClose คือราคาก่อนต้นช่วง จึงไม่ใส่ไว้ใน parseQuote)
+    if (q.changePct == null) {
+      const prev = (json as { chart?: { result?: { meta?: { chartPreviousClose?: number } }[] } })?.chart?.result?.[0]
+        ?.meta?.chartPreviousClose;
+      if (typeof prev === "number" && Number.isFinite(prev) && prev > 0) q.changePct = q.price / prev - 1;
+    }
+    return { ...q, closes: null };
+  } catch {
+    return null; // timeout / network / JSON พัง — ผู้เรียก fallback เป็นราคาจากรอบทบทวน
+  }
+}
+
+/** ราคาล่าสุดอย่างเดียว (closes = null) — ยิงช่วง 1 วัน เบากว่า getQuotes มาก ใช้กับหน้าที่ไม่ต้องใช้ history */
+export async function getLatestQuotes(tickers: string[]): Promise<Map<string, Quote>> {
+  return fetchMany(tickers, fetchLatest);
 }

@@ -69,7 +69,18 @@ export function zoneInfo(tranches: Tranche[], price: number): ZoneInfo | null {
  * บรรทัดบน = ไม้ที่ใกล้สุด + ระยะห่าง (อ่านจบได้โดยไม่ต้องดูแถบ) · เลขไม้ 1/2/3 อยู่ในช่อง
  * ขีดราคามีป้าย "ราคาตอนนี้" ใต้แถบ · เส้นประจากราคาถึงไม้ 1 คือระยะที่ต้องลงมาอีก · ซ้าย = ราคาต่ำ ขวา = ราคาสูง
  */
-export default function PlanZone({ tranches, info, price }: { tranches: Tranche[]; info: ZoneInfo | null; price: number | null }) {
+export default function PlanZone({
+  tranches,
+  info,
+  price,
+  live = true,
+}: {
+  tranches: Tranche[];
+  info: ZoneInfo | null;
+  price: number | null;
+  /** false = ดึงราคาสดไม่ได้ ใช้ราคาวันทบทวนแทน — ป้ายต้องไม่บอกว่าเป็น "ราคาตอนนี้" */
+  live?: boolean;
+}) {
   if (!info || price == null || tranches.length === 0) return null;
   const lo = Math.min(tranches[tranches.length - 1].low, price);
   const hi = Math.max(tranches[0].high, price);
@@ -103,7 +114,7 @@ export default function PlanZone({ tranches, info, price }: { tranches: Tranche[
           <span className="pzb-now" style={{ left: `${nowX}%` }} />
         </div>
         <span className={`pzb-now-label${nowX > 80 ? " end" : nowX < 20 ? " start" : ""}`} style={{ left: `${nowX}%` }}>
-          ▲ ราคาตอนนี้
+          ▲ {live ? "ราคาตอนนี้" : "ราคา ณ ทบทวน"}
         </span>
       </div>
     </div>

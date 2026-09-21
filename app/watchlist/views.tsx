@@ -23,8 +23,13 @@ export interface WatchRow {
   stock: StockOverview;
   review: Review | null;
   plan: string;
+  /** ราคาสด (lib/quote.ts) ถ้าดึงได้ ไม่งั้นราคา ณ รอบทบทวน/รายงาน — ใช้ทั้งราคาบนการ์ดและตำแหน่งบนแถบไม้ */
   price: number | null;
+  /** ราคาสด = % วันนี้ · fallback = % เทียบวันที่ทำรายงาน (ความหมายอยู่ใน moveTitle) */
   move: number | null;
+  moveTitle: string;
+  /** ป้ายเล็กบอกว่าราคาเป็นของเมื่อไร: "ราคา 14:05" (สด) / "ราคา ณ ทบทวน 21 ก.ย." (fallback) */
+  priceLabel: { text: string; live: boolean } | null;
   tranches: Tranche[];
   zone: ZoneInfo | null;
   change: BriefEntry | null;
@@ -153,22 +158,26 @@ function Status({ plan }: { plan: string }) {
   );
 }
 
-function PriceRow({ price, move }: { price: number | null; move: number | null }) {
+function PriceRow({ row }: { row: WatchRow }) {
+  const { price, move, moveTitle, priceLabel } = row;
   if (price == null) return null;
+  // ราคาสดบางตัวมาทศนิยม 3 ตำแหน่ง (1,686.905) — ตัดเหลือ 2 · ลูกศรดูจากค่าที่ปัดแล้ว ไม่ให้เกิด "▼ 0.0%"
+  const m = move != null ? Math.round(move * 10) / 10 : null;
   return (
     <div className="wc-pricerow">
-      <span className="wc-price">{price.toLocaleString()}</span>
-      {move != null && (
-        <span className={`wc-move ${move >= 0 ? "up" : "dn"}`} title="เทียบราคาวันที่ทำรายงาน">
-          {move > 0 ? "▲" : move < 0 ? "▼" : ""} {Math.abs(move).toFixed(1)}%
+      <span className="wc-price">{price.toLocaleString("en-US", { maximumFractionDigits: 2 })}</span>
+      {m != null && (
+        <span className={`wc-move ${m >= 0 ? "up" : "dn"}`} title={moveTitle}>
+          {m > 0 ? "▲" : m < 0 ? "▼" : ""} {Math.abs(m).toFixed(1)}%
         </span>
       )}
+      {priceLabel && <span className={`wc-asof${priceLabel.live ? " live" : ""}`}>{priceLabel.text}</span>}
     </div>
   );
 }
 
 export function Card({ row }: { row: WatchRow }) {
-  const { stock, plan, price, move, change } = row;
+  const { stock, plan, price, change } = row;
   const face = (
     <>
       <div className="wc-head">
@@ -179,8 +188,8 @@ export function Card({ row }: { row: WatchRow }) {
         {/* ดาวอยู่ขวาบนที่เดียว (ผู้ใช้กำหนด) */}
         <WatchButton ticker={stock.ticker} watching compact />
       </div>
-      <PriceRow price={price} move={move} />
-      <PlanZone tranches={row.tranches} info={row.zone} price={price} />
+      <PriceRow row={row} />
+      <PlanZone tranches={row.tranches} info={row.zone} price={price} live={row.priceLabel?.live ?? false} />
       {change && (
         <div className="wc-tags">
           {row.tags.map((t) => (
@@ -203,9 +212,9 @@ export function Card({ row }: { row: WatchRow }) {
     <>
       <div className={`wc-dlg-sum ps-${plan}`}>
         <Status plan={plan} />
-        <PriceRow price={price} move={move} />
+        <PriceRow row={row} />
       </div>
-      <PlanZone tranches={row.tranches} info={row.zone} price={price} />
+      <PlanZone tranches={row.tranches} info={row.zone} price={price} live={row.priceLabel?.live ?? false} />
       <Detail row={row} />
     </>
   );

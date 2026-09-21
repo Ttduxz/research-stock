@@ -2142,11 +2142,13 @@ body::after {
 .wc-idcol { display: grid; min-width: 0; }
 .wc-ticker { font-family: var(--font-data); font-weight: 700; font-size: 21px; line-height: 1.15; letter-spacing: 0.01em; }
 .wc-name { font-size: 12.5px; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wc-pricerow { display: flex; align-items: baseline; gap: 8px; margin-top: -4px; }
+.wc-pricerow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin-top: -4px; }
 .wc-price { font-family: var(--font-data); font-size: 16px; font-weight: 600; line-height: 1.3; }
 .wc-move { font-family: var(--font-data); font-size: 12px; padding: 0 6px; border-radius: 5px; line-height: 1.6; }
 .wc-move.up { color: var(--green); background: var(--green-wash); }
 .wc-move.dn { color: var(--red); background: var(--red-wash); }
+/* ราคาเป็นของเมื่อไร — เล็กที่สุดที่อ่านออก (ผู้ใช้ไม่เอาตัวหนังสือเยอะ) · สด = ไม่มีคำว่า "ณ ทบทวน" */
+.wc-asof { font-size: 10.5px; color: var(--text-faint); white-space: nowrap; }
 
 /* ไม้ของแผน (components/PlanZone.tsx) — ข้อความบรรทัดบน (อ่านจบในตัว) + แถบที่ทุกอย่างมีป้าย:
    เลขไม้ใต้ช่อง · ป้าย "ตอนนี้" ที่ขีดราคา · เส้นประ = ระยะจากราคาถึงไม้ 1 (รอบแรกไม่มีป้าย ผู้ใช้บอกว่าสับสน) */
@@ -2217,7 +2219,8 @@ html:has(.wc-dialog[open]) { overflow: hidden; }
   .wl-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .wl-fchip { font-size: 14px; padding: 6px 11px; }
   .wc-sum { padding: 12px 11px 8px; gap: 8px; }
-  .wc-pricerow { gap: 6px; }
+  .wc-pricerow { gap: 1px 6px; }
+  .wc-asof { font-size: 11px; }
   .wc-ticker { font-size: 19px; }
   .wc-price { font-size: 15px; }
   .pz { padding: 7px 8px 3px; }

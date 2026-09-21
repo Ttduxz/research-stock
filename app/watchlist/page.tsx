@@ -11,6 +11,7 @@ import {
 import { listWatchTickers, watchlistAvailable } from "@/lib/watchlist";
 import { getBriefBaseline, getWatchBrief } from "@/lib/watch-brief";
 import { isActiveHint } from "@/lib/hint-status";
+import { getLatestQuotes, type Quote } from "@/lib/quote";
 import type { Review, StockOverview } from "@/lib/db";
 import WatchlistSeen from "@/components/WatchlistSeen";
 import { parseTranches, zoneInfo } from "@/components/PlanZone";
@@ -40,6 +41,21 @@ const fmtSince = (since: string) =>
     minute: "2-digit",
   });
 
+/** วันที่ 'YYYY-MM-DD' → "21 ก.ย." */
+const fmtDay = (d: string) =>
+  new Date(d + "T00:00:00Z").toLocaleDateString("th-TH", { timeZone: "UTC", day: "numeric", month: "short" });
+
+/** เวลาของราคาสด (เวลาไทย) — วันเดียวกันบอกแค่เวลา ถ้าเป็นราคาปิดของวันก่อน (ตลาดปิด) บอกวันที่แทน */
+function fmtQuoteTime(asOf: string | null): string | null {
+  if (!asOf) return null;
+  const t = new Date(asOf);
+  if (Number.isNaN(t.getTime())) return null;
+  const day = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: "Asia/Bangkok" });
+  return day(t) === day(new Date())
+    ? t.toLocaleTimeString("th-TH", { timeZone: "Asia/Bangkok", hour: "2-digit", minute: "2-digit" })
+    : t.toLocaleDateString("th-TH", { timeZone: "Asia/Bangkok", day: "numeric", month: "short" });
+}
+
 /**
  * รายการติดตามเป็นของแต่ละคน (อ่านสดจาก lib/watchlist.ts + lib/watch-brief.ts ไม่ผ่าน cache)
  * ส่วนข้อมูลหุ้น/ผลทบทวน/แผนเป็นของกลาง ใช้ query ที่ cache ร่วมกับหน้าอื่นได้
@@ -66,11 +82,25 @@ export default async function WatchlistPage() {
     .map((t) => ({ stock: stockBy.get(t), review: reviewBy.get(t) ?? null }))
     .filter((x): x is { stock: StockOverview; review: Review | null } => !!x.stock);
 
-  const brief = baseline ? await getWatchBrief(items.map((x) => x.stock.ticker), baseline, insightSlugs) : null;
+  // ราคาสดยิงพร้อมกับ brief — ดึงไม่ได้/ช้าเกิน timeout ของ lib/quote.ts = ตัวนั้น fallback เป็นราคาจากรอบทบทวน หน้าไม่พัง
+  const watched = items.map((x) => x.stock.ticker);
+  const [brief, quotes] = await Promise.all([
+    baseline ? getWatchBrief(watched, baseline, insightSlugs) : Promise.resolve(null),
+    watched.length > 0 ? getLatestQuotes(watched).catch(() => new Map<string, Quote>()) : Promise.resolve(new Map<string, Quote>()),
+  ]);
   const changeBy = new Map((brief?.entries ?? []).map((e) => [e.ticker, e]));
 
   const rows: WatchRow[] = items.map(({ stock, review }) => {
-    const price = review?.price_at_review ?? stock.latest_price;
+    // ราคาสดใช้แค่แสดงราคา + ตำแหน่งบนแถบไม้ — สถานะแผนยังมาจาก plan_status ของรอบทบทวนเท่านั้น
+    const quote = quotes.get(stock.ticker) ?? null;
+    const fallback = review?.price_at_review ?? stock.latest_price;
+    const price = quote ? quote.price : fallback;
+    const fallbackDate = review?.price_at_review != null ? review.review_date : stock.latest_run_date;
+    const priceLabel = quote
+      ? { text: `ราคา ${fmtQuoteTime(quote.asOf) ?? "ล่าสุด"}`, live: true }
+      : fallback != null && fallbackDate
+        ? { text: `ราคา ณ ${review?.price_at_review != null ? "ทบทวน" : "รายงาน"} ${fmtDay(fallbackDate)}`, live: false }
+        : null;
     const change = changeBy.get(stock.ticker) ?? null;
     const slugs = new Set(insightSlugs[stock.ticker] ?? []);
     const tranches = parseTranches(planBy.get(stock.ticker) ?? null);
@@ -79,7 +109,9 @@ export default async function WatchlistPage() {
       review,
       plan: review?.plan_status ?? "none",
       price,
-      move: review?.price_move_pct ?? null,
+      move: quote ? (quote.changePct != null ? quote.changePct * 100 : null) : (review?.price_move_pct ?? null),
+      moveTitle: quote ? "เปลี่ยนแปลงวันนี้" : "เทียบราคาวันที่ทำรายงาน",
+      priceLabel,
       tranches,
       zone: price != null ? zoneInfo(tranches, price) : null,
       change,
