@@ -144,7 +144,8 @@ try {
     entry_plan: planRow ? { set_on: planRow.run_date, ...parse(planRow.entry_plan_json) } : null,
     last_checks: lastChecks,
     known_items: items,
-  }));
+    // indent: agent reviewer มีแค่ Read ซึ่งตัดบรรทัดยาว — JSON บรรทัดเดียว (~40-80KB) อ่านไม่ครบ
+  }, null, 1));
 } finally {
   db.close();
 }
