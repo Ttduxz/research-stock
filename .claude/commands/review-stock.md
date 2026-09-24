@@ -9,7 +9,7 @@ argument-hint: <TICKER> [วันที่ YYYY-MM-DD ถ้าไม่ใช�
 
 **หลักการที่ห้ามพัง:** reviewer เป็นผู้ตัดสิน ไม่ใช่ผู้ตั้งใหม่ — มันแก้ทฤษฎี/verdict/entry_plan เองไม่ได้ ทำได้แค่ยกธงให้ทีม analyst/theorist ทำรอบใหม่ ถ้าปล่อยให้ผู้ตัดสินขยับคำทำนายเองทุกสัปดาห์ ทฤษฎีจะไหลตามราคาจนไม่มีอะไรผิดได้เลย และการติดตามทั้งระบบจะไร้ความหมาย
 
-**กติกาประหยัด token:** researcher = sonnet, reviewer = opus (กำหนดในไฟล์ spec แล้ว ห้าม override) — รอบติดตามส่วนใหญ่จบที่ 2 agent นี้ ไม่ต้องเรียก analyst/theorist; ระหว่างรอ agent อย่าโพสต์สถานะยาว
+**กติกาประหยัด token:** researcher = opus, reviewer = opus (กำหนดในไฟล์ spec แล้ว ห้าม override) — รอบติดตามส่วนใหญ่จบที่ 2 agent นี้ ไม่ต้องเรียก analyst/theorist; ระหว่างรอ agent อย่าโพสต์สถานะยาว
 
 1. **เตรียม workspace**: `DIR = pipeline/output/<TICKER>-review-<YYYY-MM-DD>` สร้าง directory ถ้ายังไม่มี
 

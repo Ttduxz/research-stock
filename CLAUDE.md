@@ -69,7 +69,7 @@
 
 ## กติกาสำคัญ
 
-- **โมเดลทีม agent (ห้าม override):** researcher=sonnet, analyst+theorist=opus, reviewer=opus, hint-reviewer=opus, hint-analyst=fable (กำหนดใน `.claude/agents/*.md` แล้ว) — hint-analyst รันเฉพาะตอนมี hint ที่ผ่านเกณฑ์จริงเท่านั้น ไม่ใช่ทุก ticker; นอกเหนือจากนี้ใช้ Fable เฉพาะเมื่อ user สั่ง "วิเคราะห์แบบลึกสุด" เป็นรายตัว; รัน batch หลาย ticker ให้ทำใน session ใหม่ และลดการโพสต์สถานะระหว่างรอ agent
+- **โมเดลทีม agent (ห้าม override):** researcher/data-sanity/stock-compliance/analyst/theorist/reviewer/hint-reviewer/hint-illustrator=opus, hint-analyst=fable (เปลี่ยน researcher+ด่านตรวจจาก sonnet เป็น opus 2026-09-24 หลัง A/B test SNDK: research opus กระทบยอด 10-K กับคำพูดผู้บริหารเองและไม่ต้องส่งกลับค้นเพิ่ม ต่อตัว ~$8 เทียบ ~$6) (กำหนดใน `.claude/agents/*.md` แล้ว) — hint-analyst รันเฉพาะตอนมี hint ที่ผ่านเกณฑ์จริงเท่านั้น ไม่ใช่ทุก ticker; นอกเหนือจากนี้ใช้ Fable เฉพาะเมื่อ user สั่ง "วิเคราะห์แบบลึกสุด" เป็นรายตัว; รัน batch หลาย ticker ให้ทำใน session ใหม่ และลดการโพสต์สถานะระหว่างรอ agent
 
 - ข้อมูลหุ้นทุกชิ้นต้องมาจากการค้นเว็บจริง **ห้ามแต่งตัวเลข/ข่าว** — ticker `DEMO` เท่านั้นที่เป็นข้อมูลสมมุติ
 - ตอบ user และเขียนเนื้อหาลง DB เป็นภาษาไทย (ศัพท์เทคนิค/ชื่อเฉพาะเป็นอังกฤษได้)

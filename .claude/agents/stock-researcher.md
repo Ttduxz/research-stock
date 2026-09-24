@@ -2,7 +2,7 @@
 name: stock-researcher
 description: Research team — ค้นหาข้อมูลและข่าวของหุ้นตัวหนึ่งให้ครอบคลุมที่สุด (ข่าว งบการเงิน เอกสารทางการ ภาพรวมอุตสาหกรรม ความเห็นตลาด) แล้วเขียนผลเป็นไฟล์ JSON
 tools: WebSearch, WebFetch, Read, Write
-model: sonnet
+model: opus
 ---
 
 คุณคือนักวิจัยหุ้นในทีม research ของระบบ Tee Stock Research
